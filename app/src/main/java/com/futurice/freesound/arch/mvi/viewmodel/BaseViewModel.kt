@@ -19,7 +19,8 @@ package com.futurice.freesound.arch.mvi.viewmodel
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
-import com.futurice.freesound.arch.mvi.TransitionEvent
+import android.support.annotation.CallSuper
+import com.futurice.freesound.arch.mvi.Transition
 import com.futurice.freesound.arch.mvi.TransitionObserver
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import io.reactivex.Flowable
@@ -30,42 +31,40 @@ import io.reactivex.subjects.PublishSubject
  * This class provides the basic mechanism to transform a stream of Events to a stream of States.
  */
 abstract class BaseViewModel<E, S>(
-        private val initialEvent: E,
-        private val schedulerProvider: SchedulerProvider,
+        internal val schedulerProvider: SchedulerProvider,
         private val transitionObserver: TransitionObserver,
         private val tag: String) : ViewModel(), MviViewModel<E, S> {
 
     private val events: PublishSubject<E> = PublishSubject.create()
-    private val state: MutableLiveData<S> = MutableLiveData()
+    protected val state: MutableLiveData<S> = MutableLiveData()
     private val disposable: SerialDisposable = SerialDisposable()
 
     protected fun bind() {
         disposable.set(
-                events.startWith(initialEvent)
-                        .observeOn(schedulerProvider.computation())
-                        .asUiEventFlowable()
-                        .compose { upstream -> mapEventToStateStream(upstream).asUiModelFlowable() }
+                events.asUiEventFlowable()
+                        .compose { upstream -> mapEventToStateStream(upstream).asUiStateFlowable() }
                         .subscribe(
                                 { state.postValue(it) },
-                                { onTransition(TransitionEvent.Error(it)) }))
+                                { onTransition(Transition.Error(it)) }))
     }
 
-    override fun uiEvents(uiEvent: E) {
+    override fun uiEvent(uiEvent: E) {
         events.onNext(uiEvent)
     }
 
-    override fun uiModels(): LiveData<S> {
+    override fun uiState(): LiveData<S> {
         return state
     }
 
+    @CallSuper
     override fun onCleared() {
         disposable.dispose()
     }
 
-    protected fun onTransition(transitionEvent: TransitionEvent) {
-        transitionObserver.onTransition(tag, transitionEvent)
+    protected fun onTransition(transition: Transition) {
+        transitionObserver.onTransition(tag, transition)
     }
 
-    protected abstract fun mapEventToStateStream(event: Flowable<E>): Flowable<S>
+    protected abstract fun mapEventToStateStream(events: Flowable<E>): Flowable<S>
 
 }

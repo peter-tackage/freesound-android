@@ -45,10 +45,10 @@ public class SearchFragmentModule {
 
     @Provides
     @FragmentScope
-    static SearchFragmentViewModel provideSearchFragmentViewModel(SearchDataModel searchDataModel,
+    static SearchFragmentViewModel provideSearchFragmentViewModel(SearchService searchService,
                                                                   Navigator navigator,
                                                                   AudioPlayer audioPlayer) {
-        return new SearchFragmentViewModel(searchDataModel, navigator, audioPlayer);
+        return new SearchFragmentViewModel(searchService, navigator, audioPlayer);
     }
 
     @Provides

@@ -16,18 +16,27 @@
 
 package com.futurice.freesound.arch.mvi.view
 
+import android.os.Bundle
+import android.support.annotation.CallSuper
+import android.view.ActionMode
+import com.futurice.freesound.arch.core.BaseActivity
 import com.futurice.freesound.arch.core.BaseFragment
 import com.futurice.freesound.arch.mvi.viewmodel.MviViewModel
 import javax.inject.Inject
 
 /**
- * A base Fragment which provides the binding mechanism hooks to a MviView Model.
+ * A base Activity which provides the binding mechanism hooks to a MviView Model.
  *
  * @param <C> The DI component class.
  */
-abstract class MviBaseFragment<C, E, S, VM : MviViewModel<E, S>> : BaseFragment<C>(), MviView<E, S> {
+abstract class MviBaseActivity<C, E, S, VM : MviViewModel<E, S>> : BaseActivity<C>(), MviView<E, S> {
 
     @Inject
     internal lateinit var binder: Binder<E, S, VM>
+
+    @CallSuper
+    public override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
 
 }

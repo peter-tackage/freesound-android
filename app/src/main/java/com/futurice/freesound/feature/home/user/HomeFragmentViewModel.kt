@@ -4,7 +4,7 @@ import com.futurice.freesound.arch.mvi.Dispatcher
 import com.futurice.freesound.arch.mvi.TransitionObserver
 import com.futurice.freesound.arch.mvi.combine
 import com.futurice.freesound.arch.mvi.viewmodel.ReducerViewModel
-import com.futurice.freesound.arch.mvi.viewmodel.asUiModelFlowable
+import com.futurice.freesound.arch.mvi.viewmodel.asUiStateFlowable
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import com.futurice.freesound.feature.common.streams.Fetch
 import com.futurice.freesound.feature.common.streams.Operation
@@ -44,11 +44,12 @@ class HomeFragmentViewModel(private val homeUserInteractor: HomeUserInteractor,
                             schedulerProvider: SchedulerProvider,
                             transitionObserver: TransitionObserver)
     : ReducerViewModel<HomeUiEvent, HomeUiAction, HomeUiResult, HomeUiModel>
-(HomeUiEvent.LoadHomeUserRequested, schedulerProvider, transitionObserver, "HomeFragmentViewModel") {
+(schedulerProvider, transitionObserver, "HomeFragmentViewModel") {
 
     // FIXME This is the one piece of boilerplate remaiing.
     init {
         bind()
+        uiEvent(HomeUiEvent.LoadHomeUserRequested)
     }
 
     override fun initialUiState(): HomeUiModel = HomeUiModel(
@@ -56,8 +57,6 @@ class HomeFragmentViewModel(private val homeUserInteractor: HomeUserInteractor,
             isLoading = false,
             isRefreshing = false,
             errorMsg = null)
-
-    override fun initialEvent(): HomeUiEvent = HomeUiEvent.LoadHomeUserRequested
 
     override fun mapEvent(event: HomeUiEvent): HomeUiAction =
             when (event) {
@@ -81,7 +80,7 @@ class HomeFragmentViewModel(private val homeUserInteractor: HomeUserInteractor,
     private fun refresh(): FlowableTransformer<in HomeUiAction, out HomeUiResult> =
             Dispatcher {
                 it.ofType(HomeUiAction.RefreshContent::class.java)
-                        .flatMap { refreshInteractor.refresh().asUiModelFlowable() }
+                        .flatMap { refreshInteractor.refresh().asUiStateFlowable() }
                         .map { result -> HomeUiResult.Refreshed(result) }
             }
 
@@ -89,7 +88,7 @@ class HomeFragmentViewModel(private val homeUserInteractor: HomeUserInteractor,
     private fun loadHomeUser(): FlowableTransformer<in HomeUiAction, out HomeUiResult> =
             Dispatcher {
                 it.ofType(HomeUiAction.LoadHomeUser::class.java)
-                        .flatMap { homeUserInteractor.homeUserStream().asUiModelFlowable() }
+                        .flatMap { homeUserInteractor.homeUserStream().asUiStateFlowable() }
                         .map { result -> HomeUiResult.UserUpdated(result) }
             }
 

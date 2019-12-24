@@ -16,6 +16,9 @@
 
 package com.futurice.freesound.feature.logging;
 
+import com.futurice.freesound.arch.mvi.LoggingTransitionObserver;
+import com.futurice.freesound.arch.mvi.TransitionObserver;
+
 import javax.inject.Singleton;
 
 import dagger.Module;
@@ -29,5 +32,11 @@ public class LoggingModule {
     @Singleton
     static Timber.Tree provideLoggingTree() {
         return new Timber.DebugTree();
+    }
+
+    @Provides
+    @Singleton
+    static TransitionObserver provideTransitionObserver() {
+        return new LoggingTransitionObserver();
     }
 }

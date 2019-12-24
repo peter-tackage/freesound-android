@@ -55,7 +55,7 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
             disposables += searchFragmentViewModel.soundsOnceAndStream
                     .subscribeOn(schedulerProvider.computation())
                     .observeOn(schedulerProvider.ui())
-                    .subscribe({ handleResults(it.orDefault { null }) })
+                    .subscribe({ handleResults(it) })
                     { Timber.e(it, "Error setting Sound items") }
             disposables += searchFragmentViewModel.searchStateOnceAndStream
                     .subscribeOn(schedulerProvider.computation())
@@ -103,6 +103,7 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
     }
 
     private fun showNothing() {
+        // TODO Make this show the suggestions view.
         textView_searchNoResults.visibility = GONE
         recyclerView_searchResults.visibility = GONE
     }
@@ -119,7 +120,7 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
     }
 
     private fun showProgress(searchState: SearchState) {
-        progressBar_searchProgress.visibility = if (searchState.isInProgress) VISIBLE else GONE
+        progressBar_searchProgress.visibility = if (searchState is SearchState.InProgress) VISIBLE else GONE
     }
 
     companion object {

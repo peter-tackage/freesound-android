@@ -21,12 +21,12 @@ import io.reactivex.Flowable
 import io.reactivex.Observable
 
 // For consumable values, we just take the latest if backpressure.
-fun <T> Observable<T>.asUiModelFlowable(): Flowable<T> {
+fun <T> Observable<T>.asUiStateFlowable(): Flowable<T> {
     return toFlowable(BackpressureStrategy.LATEST)
 }
 
 // For consumable values, we just take the latest if backpressure.
-fun <T> Flowable<T>.asUiModelFlowable(): Flowable<T> {
+fun <T> Flowable<T>.asUiStateFlowable(): Flowable<T> {
     return onBackpressureLatest()
 }
 

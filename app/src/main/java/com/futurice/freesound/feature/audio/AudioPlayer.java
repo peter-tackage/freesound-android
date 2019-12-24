@@ -28,7 +28,7 @@ import io.reactivex.Observable;
 public interface AudioPlayer extends Releasable {
 
     /**
-     * Initialize the player.
+     * LoadSearchResults the player.
      */
     void init();
 

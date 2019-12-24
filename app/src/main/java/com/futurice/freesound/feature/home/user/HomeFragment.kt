@@ -26,13 +26,13 @@ import android.view.View
 import android.view.ViewGroup
 import com.futurice.freesound.R
 import com.futurice.freesound.arch.mvi.view.MviBaseFragment
+import com.futurice.freesound.arch.mvi.viewmodel.asUiEventFlowable
 import com.futurice.freesound.feature.home.HomeActivity
 import com.futurice.freesound.feature.images.circularTransformation
 import com.futurice.freesound.inject.fragment.BaseFragmentModule
 import com.jakewharton.rxbinding2.support.design.widget.dismisses
 import com.jakewharton.rxbinding2.support.v4.widget.refreshes
 import com.squareup.picasso.Picasso
-import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import kotlinx.android.synthetic.main.fragment_home.*
 import javax.inject.Inject
@@ -47,7 +47,7 @@ class HomeFragment : MviBaseFragment<HomeFragmentComponent, HomeUiEvent, HomeUiM
     @Inject
     internal lateinit var picasso: Picasso
 
-    internal lateinit var errorSnackBar: Snackbar
+    private lateinit var errorSnackBar: Snackbar
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_home, container, false)
@@ -57,7 +57,7 @@ class HomeFragment : MviBaseFragment<HomeFragmentComponent, HomeUiEvent, HomeUiM
     private fun createSnackbar(view: View): Snackbar {
         return Snackbar.make(view, "Something went wrong", Snackbar.LENGTH_LONG)
                 .apply {
-                    setAction(android.R.string.ok, { dismiss() })
+                    setAction(android.R.string.ok) { dismiss() }
                     setActionTextColor(ContextCompat.getColor(view.context, R.color.colorContrastAccent))
                 }
     }
@@ -75,9 +75,9 @@ class HomeFragment : MviBaseFragment<HomeFragmentComponent, HomeUiEvent, HomeUiM
                 Flowable.merge(errorIndicatorDismissed(), refreshRequested()))
     }
 
-    override fun render(model: HomeUiModel) {
+    override fun render(state: HomeUiModel) {
 
-        val (user, isLoading, isRefreshing, errorMsg) = model
+        val (user, isLoading, isRefreshing, errorMsg) = state
 
         when (user) {
             null -> hideUser()
@@ -96,11 +96,11 @@ class HomeFragment : MviBaseFragment<HomeFragmentComponent, HomeUiEvent, HomeUiM
 
     private fun errorIndicatorDismissed() = errorSnackBar.dismisses()
             .map { HomeUiEvent.ErrorIndicatorDismissed }
-            .toFlowable(BackpressureStrategy.BUFFER)
+            .asUiEventFlowable()
 
     private fun refreshRequested() = feed_swipeToRefresh.refreshes()
             .map { HomeUiEvent.RefreshRequested }
-            .toFlowable(BackpressureStrategy.BUFFER)
+            .asUiEventFlowable()
 
     override fun cancel() = picasso.cancelRequest(avatar_image)
 

@@ -57,7 +57,7 @@ class HomeFragmentViewModelTest {
                 errorMsg = null)
 
         with(createVmUnderTest()) {
-            uiModels().test().assertValue(homeUiModel)
+            uiState().test().assertValue(homeUiModel)
         }
     }
 
@@ -80,7 +80,7 @@ class HomeFragmentViewModelTest {
                 errorMsg = null)
 
         with(createVmUnderTest()) {
-            uiModels().test()
+            uiState().test()
                     .assertOnlyValue(expected)
         }
     }
@@ -99,7 +99,7 @@ class HomeFragmentViewModelTest {
                 errorMsg = null)
 
         with(createVmUnderTest()) {
-            uiModels().test()
+            uiState().test()
                     .assertOnlyValue(expected)
         }
     }
@@ -119,7 +119,7 @@ class HomeFragmentViewModelTest {
                 errorMsg = t.localizedMessage)
 
         with(createVmUnderTest()) {
-            uiModels()
+            uiState()
                     .test()
                     .assertOnlyValue(expected)
         }

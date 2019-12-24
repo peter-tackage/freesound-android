@@ -16,11 +16,18 @@
 
 package com.futurice.freesound.feature.search;
 
-import com.futurice.freesound.common.InstantiationForbiddenError;
-import com.futurice.freesound.feature.analytics.Analytics;
+import android.arch.lifecycle.ViewModel;
+import android.arch.lifecycle.ViewModelProvider;
+import android.arch.lifecycle.ViewModelProviders;
+import android.support.annotation.NonNull;
+import android.support.v4.app.FragmentActivity;
+
+import com.futurice.freesound.arch.mvi.TransitionObserver;
+import com.futurice.freesound.arch.mvi.view.Binder;
 import com.futurice.freesound.feature.audio.AudioModule;
 import com.futurice.freesound.feature.audio.AudioPlayer;
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider;
+import com.futurice.freesound.feature.home.user.HomeFragmentViewModel;
 import com.futurice.freesound.inject.activity.ActivityScope;
 import com.futurice.freesound.inject.activity.BaseActivityModule;
 import com.futurice.freesound.network.api.FreeSoundApiService;
@@ -31,33 +38,46 @@ import dagger.Provides;
 @Module(includes = {BaseActivityModule.class, AudioModule.class})
 public class SearchActivityModule {
 
+    private final SearchActivity searchActivity;
+
+    SearchActivityModule(SearchActivity searchActivity) {
+        this.searchActivity = searchActivity;
+    }
+
+    @Provides
+     SearchActivityViewModel provideSearchViewModel(
+            SearchService searchService,
+            AudioPlayer audioPlayer,
+            SchedulerProvider schedulerProvider,
+            TransitionObserver transitionObserver) {
+
+        return ViewModelProviders.of(searchActivity, new ViewModelProvider.Factory() {
+            @SuppressWarnings("unchecked")
+            @NonNull
+            @Override
+            public <T extends ViewModel> T create(@NonNull final Class<T> modelClass) {
+                return (T) new SearchActivityViewModel(searchService,
+                        audioPlayer,
+                        schedulerProvider,
+                        transitionObserver);
+            }
+        }).get(SearchActivityViewModel.class);
+
+    }
+
+
     @Provides
     @ActivityScope
-    static SearchActivityViewModel provideSearchViewModel(SearchDataModel searchDataModel,
-                                                          AudioPlayer audioPlayer,
-                                                          Analytics analytics,
-                                                          SchedulerProvider schedulerProvider) {
-        return new SearchActivityViewModel(searchDataModel,
-                                           audioPlayer,
-                                           analytics,
-                                           schedulerProvider);
+    static SearchService provideSearchDataModel(FreeSoundApiService freeSoundApiService,
+                                                SchedulerProvider schedulerProvider) {
+        return new DefaultSearchService(freeSoundApiService, schedulerProvider);
     }
 
     @Provides
     @ActivityScope
-    static SearchDataModel provideSearchDataModel(FreeSoundApiService freeSoundApiService,
-                                                  SchedulerProvider schedulerProvider) {
-        return new DefaultSearchDataModel(freeSoundApiService, schedulerProvider);
-    }
-
-    @Provides
-    @ActivityScope
-    static SearchSnackbar provideSearchSnackbar() {
-        return new SearchSnackbar();
-    }
-
-    private SearchActivityModule() {
-        throw new InstantiationForbiddenError();
+    Binder<SearchActivityEvent, SearchActivityState, SearchActivityViewModel> provideBinder(
+            SearchActivityViewModel viewModel) {
+        return new Binder<>(searchActivity, viewModel, searchActivity);
     }
 
 }

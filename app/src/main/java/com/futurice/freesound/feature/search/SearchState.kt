@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Futurice GmbH
+ * Copyright 2019 Futurice GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.futurice.freesound.arch.mvi.viewmodel
+package com.futurice.freesound.feature.search;
 
-import android.arch.lifecycle.LiveData
+import com.futurice.freesound.network.api.model.Sound;
 
-interface MviViewModel<in E, S> {
-
-    fun uiEvent(uiEvent: E)
-
-    fun uiState(): LiveData<S>
-
+sealed class SearchState {
+    object Initial : SearchState()
+    data class InProgress(val searchTerm: String) : SearchState()
+    data class Success(val searchTerm: String, val results: List<Sound>): SearchState()
+    data class Error(val searchTerm: String, val reason: Throwable): SearchState()
 }

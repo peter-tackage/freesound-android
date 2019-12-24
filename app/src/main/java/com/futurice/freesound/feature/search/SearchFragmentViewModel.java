@@ -35,7 +35,7 @@ import static com.futurice.freesound.feature.search.SearchConstants.SearchResult
 final class SearchFragmentViewModel extends SimpleViewModel {
 
     @NonNull
-    private final SearchDataModel searchDataModel;
+    private final SearchService searchService;
 
     @NonNull
     private final Navigator navigator;
@@ -43,25 +43,26 @@ final class SearchFragmentViewModel extends SimpleViewModel {
     @NonNull
     private final AudioPlayer audioPlayer;
 
-    SearchFragmentViewModel(@NonNull final SearchDataModel searchDataModel,
+    SearchFragmentViewModel(@NonNull final SearchService searchService,
                             @NonNull final Navigator navigator,
                             @NonNull final AudioPlayer audioPlayer) {
-        this.searchDataModel = get(searchDataModel);
+        this.searchService = get(searchService);
         this.navigator = get(navigator);
         this.audioPlayer = get(audioPlayer);
     }
 
     @NonNull
-    Observable<Option<List<DisplayableItem<Sound>>>> getSoundsOnceAndStream() {
-        return searchDataModel.getSearchStateOnceAndStream()
-                              .map(SearchState::results)
-                              .map(it -> it.map(SearchFragmentViewModel::wrapInDisplayableItem))
-                              .doOnNext(__ -> audioPlayer.stopPlayback());
+    Observable<List<DisplayableItem<Sound>>> getSoundsOnceAndStream() {
+        return searchService.getSearchState()
+                .ofType(SearchState.Success.class)
+                .map(SearchState.Success::getResults)
+                .map(SearchFragmentViewModel::wrapInDisplayableItem)
+                .doOnNext(__ -> audioPlayer.stopPlayback());
     }
 
     @NonNull
     Observable<SearchState> getSearchStateOnceAndStream() {
-        return searchDataModel.getSearchStateOnceAndStream();
+        return searchService.getSearchState();
     }
 
     void stopPlayback() {
@@ -76,8 +77,8 @@ final class SearchFragmentViewModel extends SimpleViewModel {
     private static List<DisplayableItem<Sound>> wrapInDisplayableItem(
             @NonNull final List<Sound> sounds) {
         return Observable.fromIterable(sounds)
-                         .map(sound -> new DisplayableItem<>(sound, SOUND))
-                         .toList()
-                         .blockingGet();
+                .map(sound -> new DisplayableItem<>(sound, SOUND))
+                .toList()
+                .blockingGet();
     }
 }

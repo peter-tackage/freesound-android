@@ -22,21 +22,25 @@ import com.futurice.freesound.arch.mvi.viewmodel.MviViewModel
 /**
  * The MviView holds this instance.
  */
-class Binder<E, M, VM : MviViewModel<E, M>>(private val mviView: MviView<E, M>,
+class Binder<E, S, VM : MviViewModel<E, S>>(private val mviView: MviView<E, S>,
                                             private val viewModel: VM,
                                             private val lifecycleOwner: LifecycleOwner) {
 
     init {
+        bind()
+    }
+
+    private fun bind() {
         lifecycleOwner.lifecycle.observeOnCreate { connect() }
     }
 
     private fun connect() {
-        // Send UiEvents to the ViewModel
+        // Send events to the ViewModel
         mviView.uiEvents()
-                .observe(lifecycleOwner, Observer { viewModel.uiEvents(it!!) })
+                .observe(lifecycleOwner, Observer { viewModel.uiEvent(it!!) })
 
-        // Send UiModels to the View
-        viewModel.uiModels()
+        // Send state to the View
+        viewModel.uiState()
                 .observe(lifecycleOwner, Observer { mviView.render(it!!) })
 
         // Cancels asynchronous actions the view is handling

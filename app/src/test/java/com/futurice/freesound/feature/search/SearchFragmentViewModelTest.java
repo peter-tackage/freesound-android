@@ -46,7 +46,7 @@ import static polanski.option.Option.ofObj;
 public class SearchFragmentViewModelTest {
 
     @Mock
-    private SearchDataModel searchDataModel;
+    private SearchService searchService;
 
     @Mock
     private Navigator navigator;
@@ -60,7 +60,7 @@ public class SearchFragmentViewModelTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
-        viewModel = new SearchFragmentViewModel(searchDataModel, navigator, audioPlayer);
+        viewModel = new SearchFragmentViewModel(searchService, navigator, audioPlayer);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class SearchFragmentViewModelTest {
         }
 
         Arrangement withSuccessfulSearchResultStream() {
-            when(searchDataModel.getSearchStateOnceAndStream())
+            when(searchService.getSearchState())
                     .thenReturn(mockedSearchResultsStream);
             return this;
         }

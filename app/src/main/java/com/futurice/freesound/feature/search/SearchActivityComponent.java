@@ -28,7 +28,7 @@ import dagger.Subcomponent;
 @Subcomponent(modules = SearchActivityModule.class)
 public interface SearchActivityComponent extends BaseActivityComponent {
 
-    SearchDataModel getSearchDataModel();
+    SearchService getSearchDataModel();
 
     Navigator getNavigator();
 

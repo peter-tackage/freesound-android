@@ -16,75 +16,76 @@
 
 package com.futurice.freesound.feature.search
 
+import android.arch.lifecycle.LiveData
+import android.arch.lifecycle.LiveDataReactiveStreams
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.widget.SearchView
 import android.support.v7.widget.SearchView.OnQueryTextListener
+import android.util.Log
 import android.view.View
+import android.widget.Toast
 import com.futurice.freesound.R
 import com.futurice.freesound.app.FreesoundApplication
-import com.futurice.freesound.common.rx.plusAssign
+import com.futurice.freesound.arch.mvi.view.MviBaseActivity
+import com.futurice.freesound.arch.mvi.viewmodel.asUiEventFlowable
 import com.futurice.freesound.common.utils.Preconditions.get
 import com.futurice.freesound.common.utils.ifNull
-import com.futurice.freesound.arch.mvvm.view.MvvmBaseActivity
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import com.futurice.freesound.inject.activity.BaseActivityModule
-import com.futurice.freesound.arch.mvvm.DataBinder
-import com.futurice.freesound.arch.mvvm.SimpleDataBinder
-import com.futurice.freesound.arch.mvvm.ViewModel
-import io.reactivex.Observable
-import io.reactivex.ObservableEmitter
-import io.reactivex.Scheduler
-import io.reactivex.disposables.CompositeDisposable
+import com.jakewharton.rxbinding2.support.design.widget.dismisses
+import io.reactivex.*
 import kotlinx.android.synthetic.main.activity_search.*
-import timber.log.Timber.e
 import javax.inject.Inject
 
-class SearchActivity : MvvmBaseActivity<SearchActivityComponent>() {
+class SearchActivity : MviBaseActivity<
+        SearchActivityComponent,
+        SearchActivityEvent,
+        SearchActivityState,
+        SearchActivityViewModel
+        >() {
 
     @Inject
     internal lateinit var searchViewModel: SearchActivityViewModel
 
     @Inject
-    internal lateinit var searchSnackbar: SearchSnackbar
-
-    @Inject
     internal lateinit var schedulerProvider: SchedulerProvider
 
-    private val dataBinder = object : SimpleDataBinder() {
+    override fun render(state: SearchActivityState) {
+        Log.i("TAG", "Rendering: $state")
 
-        private fun SearchView.getTextChangeStream(uiScheduler: Scheduler): Observable<String> =
-                Observable.create<String> { subscribeToSearchView(it) }
-                        .subscribeOn(uiScheduler)
+        state.searchTerm
+                .takeIf { search_view.query !=  it }
+                .also { search_view.setQuery(it, false) }
 
-        override fun bind(d: CompositeDisposable) {
-            d += searchViewModel.isClearEnabledOnceAndStream
-                    .observeOn(schedulerProvider.ui())
-                    .subscribe({ setClearSearchVisible(it) })
-                    { e(it, "Error setting query string") }
+        setClearSearchVisible(state.isClearEnabled)
 
-            d += search_view.getTextChangeStream(schedulerProvider.ui())
-                    .observeOn(schedulerProvider.computation())
-                    .subscribe({ searchViewModel.search(it) })
-                    { e(it, "Error getting changed text") }
-
-            d += searchViewModel.searchStateOnceAndStream
-                    .observeOn(schedulerProvider.ui())
-                    .subscribe({ handleErrorState(it) })
-                    { e(it, "Error receiving Errors") }
+        state.errorMessage?.also {
+            showErrorMessage(it)
         }
+    }
 
-        private fun SearchView.subscribeToSearchView(emitter: ObservableEmitter<String>) {
-            setOnQueryTextListener(object : OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String): Boolean = false
+    override fun uiEvents(): LiveData<SearchActivityEvent> {
+        return LiveDataReactiveStreams.fromPublisher(searchTermChanges())
+    }
 
-                override fun onQueryTextChange(newText: String): Boolean {
-                    emitter.onNext(get(newText))
-                    return true
-                }
-            })
-        }
+    private fun searchTermChanges() = search_view.getTextChangeStream()
+
+    private fun SearchView.getTextChangeStream() =
+            Observable.create<String> { subscribeToSearchView(it) }
+                    .map { SearchActivityEvent.SearchTermChanged(it) as SearchActivityEvent }
+                    .asUiEventFlowable()
+
+    private fun SearchView.subscribeToSearchView(emitter: ObservableEmitter<String>) {
+        setOnQueryTextListener(object : OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean = false
+
+            override fun onQueryTextChange(newText: String): Boolean {
+                emitter.onNext(get(newText))
+                return true
+            }
+        })
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +98,7 @@ class SearchActivity : MvvmBaseActivity<SearchActivityComponent>() {
 
         search_view.apply {
             isIconified = false
+            // TODO Should this only be set by the state?
             setOnCloseListener {
                 setQuery(NO_SEARCH, true)
                 true
@@ -104,22 +106,14 @@ class SearchActivity : MvvmBaseActivity<SearchActivityComponent>() {
         }
     }
 
-    override fun viewModel(): ViewModel = searchViewModel
-
-    override fun dataBinder(): DataBinder = dataBinder
-
     override fun inject() {
         component().inject(this)
     }
 
     override fun createComponent(): SearchActivityComponent =
             (application as FreesoundApplication).component()
-                    .plusSearchActivityComponent(BaseActivityModule(this))
-
-    override fun onPause() {
-        dismissSnackbar()
-        super.onPause()
-    }
+                    .plusSearchActivityComponent(BaseActivityModule(this),
+                            SearchActivityModule(this))
 
     private fun addSearchFragment() {
         supportFragmentManager.beginTransaction()
@@ -127,28 +121,19 @@ class SearchActivity : MvvmBaseActivity<SearchActivityComponent>() {
                 .commit()
     }
 
-    private fun handleErrorState(searchState: SearchState) {
-        searchState.error()
-                .ifSome { showSnackbar(getString(R.string.search_error)) }
-                .ifNone { this.dismissSnackbar() }
-    }
-
     private fun setClearSearchVisible(isClearButtonVisible: Boolean) {
-        val closeButton : View = search_view.findViewById(R.id.search_close_btn)
+        val closeButton: View = search_view.findViewById(R.id.search_close_btn)
         closeButton.visibility = if (isClearButtonVisible) View.VISIBLE else View.GONE
     }
 
-    private fun showSnackbar(charSequence: CharSequence) {
-        searchSnackbar.showNewSnackbar(search_coordinatorlayout, charSequence)
-    }
-
-    private fun dismissSnackbar() {
-        searchSnackbar.dismissSnackbar()
+    private fun showErrorMessage(charSequence: CharSequence) {
+        Toast.makeText(this, charSequence, Toast.LENGTH_SHORT).show()
     }
 
     companion object {
 
-        @JvmStatic fun open(context: Context) {
+        @JvmStatic
+        fun open(context: Context) {
             Intent(context, SearchActivity::class.java)
                     .apply { context.startActivity(this) }
         }

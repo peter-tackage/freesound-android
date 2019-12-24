@@ -22,32 +22,25 @@ import com.futurice.freesound.arch.mvi.TransitionObserver
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import io.reactivex.Flowable
 
-/**
- * Provides the hooks to transform events->actions->results->states.
- *
- * This is a more involved version of the transformation process.
- */
-abstract class ReducerViewModel<E, A, R, S>(schedulerProvider: SchedulerProvider,
-                                            transitionObserver: TransitionObserver, tag: String)
+abstract class SimpleViewModel<E, S>(val initialState: S,
+                                     schedulerProvider: SchedulerProvider,
+                                     transitionObserver: TransitionObserver,
+                                     tag: String)
     : BaseViewModel<E, S>(schedulerProvider, transitionObserver, tag) {
+
+    init {
+        state.value = initialState;
+    }
 
     override fun mapEventToStateStream(events: Flowable<E>): Flowable<S> {
         return events
                 .doOnNext { onTransition(Transition.Event(it as Any)) }
-                .map(::mapEvent)
-                .doOnNext { onTransition(Transition.Action(it as Any)) }
-                .compose(dispatch())
-                .doOnNext { onTransition(Transition.Result(it as Any)) }
-                .compose { it.scan(initialUiState(), reduce()) }
+                .compose(mapEventToState(state.value!!))
                 .doOnNext { onTransition(Transition.State(it as Any)) }
-                .startWith(initialUiState())
+                .startWith(initialState)
+                .doOnComplete { onTransition(Transition.Completed) }
     }
 
-    abstract fun initialUiState(): S
+    protected abstract fun mapEventToState(state: S): Dispatcher<E, S>
 
-    protected abstract fun mapEvent(event: E): A
-
-    protected abstract fun dispatch(): Dispatcher<A, R>
-
-    protected abstract fun reduce(): (S, R) -> S
 }

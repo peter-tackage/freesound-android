@@ -16,12 +16,14 @@
 
 package com.futurice.freesound.feature.common.streams
 
+// A Runnable
 sealed class Fetch<T> {
     class InProgress<T> : Fetch<T>()
     data class Success<T>(val value: T) : Fetch<T>()
     data class Failure<T>(val error: Throwable) : Fetch<T>()
 }
 
+// An Action
 sealed class Operation {
     object InProgress : Operation()
     object Complete : Operation()

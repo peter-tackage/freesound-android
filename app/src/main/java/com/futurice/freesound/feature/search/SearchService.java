@@ -21,13 +21,13 @@ import android.support.annotation.NonNull;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 
-public interface SearchDataModel {
+public interface SearchService {
 
     @NonNull
-    Completable querySearch(@NonNull String query, @NonNull final Completable preliminaryTask);
+    Completable search(@NonNull String query);
 
     @NonNull
-    Observable<SearchState> getSearchStateOnceAndStream();
+    Observable<SearchState> getSearchState();
 
     @NonNull
     Completable clear();
