@@ -25,33 +25,22 @@ import android.view.View.VISIBLE
 import android.view.ViewGroup
 import com.futurice.freesound.R
 import com.futurice.freesound.arch.mvi.view.MviBaseFragment
-import com.futurice.freesound.common.rx.plusAssign
-import com.futurice.freesound.arch.mvvm.view.MvvmBaseFragment
 import com.futurice.freesound.feature.common.DisplayableItem
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import com.futurice.freesound.feature.common.ui.adapter.RecyclerViewAdapter
 import com.futurice.freesound.inject.fragment.BaseFragmentModule
 import com.futurice.freesound.network.api.model.Sound
-import com.futurice.freesound.arch.mvvm.DataBinder
-import com.futurice.freesound.arch.mvvm.ViewModel
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.fragment_search.*
-import timber.log.Timber
 import javax.inject.Inject
 
-class SearchFragment : MviBaseFragment<SearchFragmentComponent, SearchFragmentEvent, SearchFragmentState, SearchFragmentViewModel>() {
+class SearchFragment :
+        MviBaseFragment<SearchFragmentComponent,
+                SearchFragmentEvent,
+                SearchFragmentState,
+                SearchFragmentViewModel>() {
     override fun render(state: SearchFragmentState) {
-
-        searchFragmentViewModel.soundsOnceAndStream
-                .subscribeOn(schedulerProvider.computation())
-                .observeOn(schedulerProvider.ui())
-                .subscribe({ handleResults(it) })
-                { Timber.e(it, "Error setting Sound items") }
-        disposables += searchFragmentViewModel.searchStateOnceAndStream
-                .subscribeOn(schedulerProvider.computation())
-                .observeOn(schedulerProvider.ui())
-                .subscribe({ showProgress(it) })
-                { Timber.e(it, "Error receiving search triggered Events") }
+        showProgress(state.inProgress)
+        handleResults(state.sounds)
     }
 
     @Inject
@@ -88,10 +77,6 @@ class SearchFragment : MviBaseFragment<SearchFragmentComponent, SearchFragmentEv
             (activity as SearchActivity).component()
                     .plusSearchFragmentComponent(BaseFragmentModule(this))
 
-    override fun viewModel(): ViewModel = searchFragmentViewModel
-
-    override fun dataBinder(): DataBinder = dataBinder
-
     private fun handleResults(sounds: List<DisplayableItem<Sound>>?) {
         if (sounds != null) showResults(sounds) else showNothing()
     }
@@ -113,8 +98,8 @@ class SearchFragment : MviBaseFragment<SearchFragmentComponent, SearchFragmentEv
         }
     }
 
-    private fun showProgress(searchState: SearchState) {
-        progressBar_searchProgress.visibility = if (searchState is SearchState.InProgress) VISIBLE else GONE
+    private fun showProgress(inProgress: Boolean) {
+        progressBar_searchProgress.visibility = if (inProgress) VISIBLE else GONE
     }
 
     companion object {
