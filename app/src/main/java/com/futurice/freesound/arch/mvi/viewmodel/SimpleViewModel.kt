@@ -29,19 +29,17 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
     : BaseViewModel<E, S>(schedulerProvider, transitionObserver, tag) {
 
     init {
-        state.value = initialState;
+        state.value = initialState
     }
 
     override fun transformEventToStateStream(events: Flowable<E>): Flowable<S> {
         return events
                 .doOnNext { onTransition(Transition.Event(it as Any)) }
-                .compose(withTransforms(state.value!!))
+                .compose(transformEventToStateStream(state.value!!, transforms()))
                 .doOnNext { onTransition(Transition.State(it as Any)) }
                 .startWith(initialState)
                 .doOnComplete { onTransition(Transition.Completed) }
     }
-
-    protected abstract fun transformEventToState(state: S): FlowableTransformer<E, S>
 
     //
     // TODO Need to update these to allow changes to transform based on state too.
@@ -77,13 +75,16 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
                 }
             }
 
-    protected fun <E, S> withTransforms(state: S,
-                                        vararg transformers: (state: S) -> FlowableTransformer<in E, out S>): FlowableTransformer<E, S> {
+    private fun <E, S> transformEventToStateStream(state: S,
+                                                   transforms: List<(state: S) -> FlowableTransformer<in E, out S>>
+    ): FlowableTransformer<E, S> {
         return FlowableTransformer {
             it.publish { events: Flowable<out E> ->
-                Flowable.merge(transformers.map { transformer -> events.compose(transformer(state)) })
+                Flowable.merge(transforms.map { transformer -> events.compose(transformer(state)) })
             }
         }
     }
+
+    abstract fun transforms(): List<(state: S) -> FlowableTransformer<in E, out S>>
 
 }

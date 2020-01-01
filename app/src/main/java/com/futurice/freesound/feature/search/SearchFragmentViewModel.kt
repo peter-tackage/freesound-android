@@ -46,14 +46,12 @@ class SearchFragmentViewModel(private val searchService: SearchService,
         SimpleViewModel<SearchFragmentEvent, SearchFragmentState>(
                 SearchFragmentState(false),
                 schedulerProvider, transitionObserver, "SearchFragmentViewModel") {
-
     init {
         bind()
         uiEvent(SearchFragmentEvent.LoadSearchResults)
     }
 
-    override fun transformEventToState(state: SearchFragmentState) =
-            withTransforms(state, loadSounds(), openSoundDetails())
+    override fun transforms() = listOf(loadSounds(), openSoundDetails())
 
     private fun loadSounds() =
             async<SearchFragmentEvent.LoadSearchResults, SearchState, SearchFragmentState>(
