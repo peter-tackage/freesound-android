@@ -79,7 +79,7 @@ public class SearchFragmentViewModelTest {
 
         viewModel.getSoundsOnceAndStream()
                  .test()
-                 .assertValue(hasOptionValue(expectedDisplayableItems(sounds)));
+                 .assertValue(expectedDisplayableItems(sounds));
     }
 
     @Test
@@ -122,10 +122,11 @@ public class SearchFragmentViewModelTest {
                          .blockingGet();
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     private class Arrangement {
 
         private final BehaviorSubject<SearchState> mockedSearchResultsStream
-                = BehaviorSubject.createDefault(SearchState.cleared());
+                = BehaviorSubject.createDefault(SearchState.Initial.INSTANCE);
 
         Arrangement() {
             withSuccessfulSearchResultStream();
@@ -137,11 +138,9 @@ public class SearchFragmentViewModelTest {
             return this;
         }
 
-        Arrangement enqueueSearchResults(@NonNull final Option<List<Sound>> sounds) {
-            sounds.ifSome(
-                    soundList -> mockedSearchResultsStream.onNext(SearchState.success(soundList)))
-                  .ifNone(() -> mockedSearchResultsStream.onNext(SearchState.cleared()));
-            return this;
+        Arrangement enqueueSearchResults(String query, List<Sound> sounds) {
+             mockedSearchResultsStream.onNext(new SearchState.Success(query, sounds));
+             return this;
         }
 
     }

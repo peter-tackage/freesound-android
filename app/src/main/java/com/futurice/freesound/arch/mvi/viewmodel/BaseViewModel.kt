@@ -42,7 +42,10 @@ abstract class BaseViewModel<E, S>(
     protected fun bind() {
         disposable.set(
                 events.asUiEventFlowable()
-                        .compose { upstream -> mapEventToStateStream(upstream).asUiStateFlowable() }
+                        .compose { upstream ->
+                            transformEventToStateStream(upstream)
+                                    .asUiStateFlowable<S>()
+                        }
                         .subscribe(
                                 { state.postValue(it) },
                                 { onTransition(Transition.Error(it)) }))
@@ -65,6 +68,6 @@ abstract class BaseViewModel<E, S>(
         transitionObserver.onTransition(tag, transition)
     }
 
-    protected abstract fun mapEventToStateStream(events: Flowable<E>): Flowable<S>
+    protected abstract fun transformEventToStateStream(events: Flowable<E>): Flowable<S>
 
 }

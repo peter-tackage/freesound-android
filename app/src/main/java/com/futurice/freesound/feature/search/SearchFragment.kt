@@ -24,6 +24,7 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import com.futurice.freesound.R
+import com.futurice.freesound.arch.mvi.view.MviBaseFragment
 import com.futurice.freesound.common.rx.plusAssign
 import com.futurice.freesound.arch.mvvm.view.MvvmBaseFragment
 import com.futurice.freesound.feature.common.DisplayableItem
@@ -38,7 +39,20 @@ import kotlinx.android.synthetic.main.fragment_search.*
 import timber.log.Timber
 import javax.inject.Inject
 
-class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
+class SearchFragment : MviBaseFragment<SearchFragmentComponent, SearchFragmentEvent, SearchFragmentState, SearchFragmentViewModel>() {
+    override fun render(state: SearchFragmentState) {
+
+        searchFragmentViewModel.soundsOnceAndStream
+                .subscribeOn(schedulerProvider.computation())
+                .observeOn(schedulerProvider.ui())
+                .subscribe({ handleResults(it) })
+                { Timber.e(it, "Error setting Sound items") }
+        disposables += searchFragmentViewModel.searchStateOnceAndStream
+                .subscribeOn(schedulerProvider.computation())
+                .observeOn(schedulerProvider.ui())
+                .subscribe({ showProgress(it) })
+                { Timber.e(it, "Error receiving search triggered Events") }
+    }
 
     @Inject
     internal lateinit var searchFragmentViewModel: SearchFragmentViewModel
@@ -48,26 +62,6 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
 
     @Inject
     internal lateinit var schedulerProvider: SchedulerProvider
-
-    private val dataBinder = object : DataBinder {
-
-        override fun bind(disposables: CompositeDisposable) {
-            disposables += searchFragmentViewModel.soundsOnceAndStream
-                    .subscribeOn(schedulerProvider.computation())
-                    .observeOn(schedulerProvider.ui())
-                    .subscribe({ handleResults(it) })
-                    { Timber.e(it, "Error setting Sound items") }
-            disposables += searchFragmentViewModel.searchStateOnceAndStream
-                    .subscribeOn(schedulerProvider.computation())
-                    .observeOn(schedulerProvider.ui())
-                    .subscribe({ showProgress(it) })
-                    { Timber.e(it, "Error receiving search triggered Events") }
-        }
-
-        override fun unbind() {
-            searchFragmentViewModel.stopPlayback()
-        }
-    }
 
     override fun onCreateView(inflater: LayoutInflater,
                               container: ViewGroup?,

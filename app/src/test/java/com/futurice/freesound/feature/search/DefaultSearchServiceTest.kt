@@ -28,7 +28,6 @@ import org.mockito.MockitoAnnotations
 
 import io.reactivex.Single
 
-import org.assertj.core.api.Assertions.assertThat
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
@@ -38,14 +37,14 @@ import org.mockito.Mockito.`when`
 class DefaultSearchServiceTest {
 
     @Mock
-    private val freeSoundApiService: FreeSoundApiService? = null
+    private lateinit var freeSoundApiService: FreeSoundApiService
 
-    private var defaultSearchService: DefaultSearchService? = null
+    private lateinit var defaultSearchService: DefaultSearchService
 
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        defaultSearchService = DefaultSearchService(freeSoundApiService!!,
+        defaultSearchService = DefaultSearchService(freeSoundApiService,
                 TrampolineSchedulerProvider())
     }
 
@@ -53,7 +52,7 @@ class DefaultSearchServiceTest {
     fun querySearch_queriesFreesoundSearchService() {
         Arrangement().withDummySearchResult()
 
-        defaultSearchService!!.search(QUERY).test()
+        defaultSearchService.search(QUERY).test()
 
         verify<FreeSoundApiService>(freeSoundApiService).search(eq(QUERY))
     }
@@ -62,7 +61,7 @@ class DefaultSearchServiceTest {
     fun querySearch_completes_whenQuerySearchSuccessful() {
         Arrangement().withSearchResultsFor(QUERY, dummyResults())
 
-        defaultSearchService!!.search(QUERY)
+        defaultSearchService.search(QUERY)
                 .test()
                 .assertComplete()
     }
@@ -71,31 +70,28 @@ class DefaultSearchServiceTest {
     fun querySearch_doesNotEmitError_whenQuerySearchErrors() {
         Arrangement().withSearchResultError(Exception())
 
-        defaultSearchService!!.search("should-error")
+        defaultSearchService.search("should-error")
                 .test()
                 .assertComplete()
     }
 
     @Test
     fun getSearchStateOnceAndStream_isInitiallyClear() {
-        defaultSearchService!!.searchState
+        defaultSearchService.searchState
                 .test()
                 .assertNotTerminated()
-                .assertValue(SearchState.cleared())
+                .assertValue(SearchState.Initial)
     }
 
     @Test
     fun querySearch_triggersSearchStateProgress() {
         Arrangement().withDummySearchResult()
-        val ts = defaultSearchService!!.searchState
-                .skip(1)
+        val ts = defaultSearchService.searchState
                 .test()
 
-        defaultSearchService!!.search(QUERY).subscribe()
+        defaultSearchService.search(QUERY).subscribe()
 
-        ts.assertValueCount(3)
-        assertThat(ts.values()[0].isInProgress()).isTrue()
-        assertThat(ts.values()[2].isInProgress()).isFalse()
+        ts.assertValue(SearchState.InProgress(QUERY))
     }
 
     @Test
@@ -103,28 +99,28 @@ class DefaultSearchServiceTest {
         val expected = dummyResults()
         Arrangement().withSearchResultsFor(QUERY, expected)
 
-        defaultSearchService!!.search(QUERY).subscribe()
+        defaultSearchService.search(QUERY).subscribe()
 
-        defaultSearchService!!.searchState
+        defaultSearchService.searchState
                 .test()
                 .assertNoErrors()
-                .assertValue(SearchState.success(expected.results))
+                .assertValue(SearchState.Success(QUERY, expected.results))
     }
 
     @Test
     fun getSearchStateOnceAndStream_doesNotCompleteOrError_whenQuerySearchErrors() {
         Arrangement().withSearchResultError(Exception())
-        val ts = defaultSearchService!!.searchState
+        val ts = defaultSearchService.searchState
                 .test()
 
-        defaultSearchService!!.search("should-error").subscribe()
+        defaultSearchService.search("should-error").subscribe()
 
         ts.assertNotTerminated()
     }
 
     @Test
     fun getSearchStateOnceAndStream_hasNoTerminalEvent() {
-        defaultSearchService!!.searchState
+        defaultSearchService.searchState
                 .test()
                 .assertNotTerminated()
     }
@@ -136,11 +132,11 @@ class DefaultSearchServiceTest {
                 .act()
                 .querySearch()
 
-        defaultSearchService!!
+        defaultSearchService
                 .searchState.test()
                 .assertNotTerminated()
                 .assertValueCount(1)
-                .assertValue(SearchState.error(searchError))
+                .assertValue(SearchState.Error(QUERY, searchError))
     }
 
     @Test
@@ -149,7 +145,7 @@ class DefaultSearchServiceTest {
                 .act()
                 .querySearch()
 
-        defaultSearchService!!.searchState
+        defaultSearchService.searchState
                 .test()
                 .assertNotTerminated()
     }
@@ -157,10 +153,10 @@ class DefaultSearchServiceTest {
     @Test
     fun getSearchStateOnceAndStream_doesNotTerminate_whenQuerySearchErrors() {
         Arrangement().withSearchResultError()
-        val ts = defaultSearchService!!.searchState
+        val ts = defaultSearchService.searchState
                 .test()
 
-        defaultSearchService!!.search(QUERY).subscribe()
+        defaultSearchService.search(QUERY).subscribe()
 
         ts.assertNotTerminated()
     }
@@ -168,12 +164,12 @@ class DefaultSearchServiceTest {
     @Test
     fun getSearchStateOnceAndStream_doesNotEmitDuplicateEvents() {
         Arrangement().withDummySearchResult()
-        val ts = defaultSearchService!!.searchState
+        val ts = defaultSearchService.searchState
                 .skip(1) // ignore initial value
                 .test()
 
-        defaultSearchService!!.search(QUERY).subscribe()
-        defaultSearchService!!.search(QUERY).subscribe()
+        defaultSearchService.search(QUERY).subscribe()
+        defaultSearchService.search(QUERY).subscribe()
 
         ts.assertValueCount(1)
     }
@@ -184,18 +180,18 @@ class DefaultSearchServiceTest {
                 .act()
                 .querySearch()
 
-        defaultSearchService!!.clear().subscribe()
+        defaultSearchService.clear().subscribe()
 
-        defaultSearchService!!.searchState
+        defaultSearchService.searchState
                 .test()
                 .assertValueCount(1)
-                .assertValue(SearchState.cleared())
+                .assertValue(SearchState.Initial)
                 .assertNotTerminated()
     }
 
     @Test
     fun clear_completes() {
-        defaultSearchService!!.clear()
+        defaultSearchService.clear()
                 .test()
                 .assertComplete()
     }
@@ -203,19 +199,19 @@ class DefaultSearchServiceTest {
     private inner class Arrangement {
 
         internal fun withDummySearchResult(): Arrangement {
-            `when`(freeSoundApiService!!.search(anyString()))
+            `when`(freeSoundApiService.search(anyString()))
                     .thenReturn(Single.just(dummyResults()))
             return this
         }
 
         internal fun withSearchResultsFor(query: String, results: SoundSearchResult): Arrangement {
-            `when`(freeSoundApiService!!.search(eq(query))).thenReturn(Single.just(results))
+            `when`(freeSoundApiService.search(eq(query))).thenReturn(Single.just(results))
             return this
         }
 
         @JvmOverloads
         internal fun withSearchResultError(exception: Exception = Exception()): Arrangement {
-            `when`(freeSoundApiService!!.search(any())).thenReturn(Single.error(exception))
+            `when`(freeSoundApiService.search(any())).thenReturn(Single.error(exception))
             return this
         }
 
@@ -228,7 +224,7 @@ class DefaultSearchServiceTest {
 
         @JvmOverloads
         internal fun querySearch(query: String = QUERY) {
-            defaultSearchService!!.search(query).subscribe()
+            defaultSearchService.search(query).subscribe()
         }
     }
 

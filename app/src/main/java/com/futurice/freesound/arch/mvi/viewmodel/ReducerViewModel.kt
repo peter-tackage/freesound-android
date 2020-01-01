@@ -31,7 +31,7 @@ abstract class ReducerViewModel<E, A, R, S>(schedulerProvider: SchedulerProvider
                                             transitionObserver: TransitionObserver, tag: String)
     : BaseViewModel<E, S>(schedulerProvider, transitionObserver, tag) {
 
-    override fun mapEventToStateStream(events: Flowable<E>): Flowable<S> {
+    override fun transformEventToStateStream(events: Flowable<E>): Flowable<S> {
         return events
                 .doOnNext { onTransition(Transition.Event(it as Any)) }
                 .map(::mapEvent)
