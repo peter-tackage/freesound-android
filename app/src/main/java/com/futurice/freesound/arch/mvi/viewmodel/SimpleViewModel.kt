@@ -45,8 +45,8 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
     // TODO Need to update these to allow changes to transform based on state too.
     //
 
-    protected inline fun <reified E2 : E, R, S2 : S> async(transform: FlowableTransformer<in E2, out R>,
-                                                           crossinline stateUpdate: (S, R) -> S)
+    protected inline fun <reified E2 : E, R, S2 : S> fromEventStream(transform: FlowableTransformer<in E2, out R>,
+                                                                     crossinline stateUpdate: (S, R) -> S = { s, r -> s })
             : (state: S) -> FlowableTransformer<in E, out S> =
             { state: S ->
                 FlowableTransformer { events ->
@@ -56,7 +56,7 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
                 }
             }
 
-    protected inline fun <reified E2 : E, S2 : S> sync(noinline stateUpdate: (S, E2) -> S)
+    protected inline fun <reified E2 : E, S2 : S> fromEvent(noinline stateUpdate: (S, E2) -> S)
             : (S2) -> FlowableTransformer<E, S> =
             { state: S ->
                 FlowableTransformer { events ->
@@ -65,7 +65,7 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
                 }
             }
 
-    protected inline fun <reified E2 : E, S2 : S> syncAction(noinline stateUpdate: (S, E2) -> Unit)
+    protected inline fun <reified E2 : E, S2 : S> fromEventDo(noinline stateUpdate: (S, E2) -> Unit)
             : (S2) -> FlowableTransformer<E, S> =
             { state: S ->
                 FlowableTransformer { events ->
@@ -85,6 +85,6 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
         }
     }
 
-    abstract fun transforms(): List<(state: S) -> FlowableTransformer<in E, out S>>
+    abstract protected fun transforms(): List<(state: S) -> FlowableTransformer<in E, out S>>
 
 }

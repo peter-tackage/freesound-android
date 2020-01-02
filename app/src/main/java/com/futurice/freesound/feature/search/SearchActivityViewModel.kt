@@ -17,7 +17,6 @@
 package com.futurice.freesound.feature.search
 
 import android.support.annotation.VisibleForTesting
-import com.futurice.freesound.arch.mvi.Dispatcher
 import com.futurice.freesound.arch.mvi.TransitionObserver
 import com.futurice.freesound.arch.mvi.viewmodel.SimpleViewModel
 import com.futurice.freesound.arch.mvi.viewmodel.asUiStateFlowable
@@ -25,7 +24,7 @@ import com.futurice.freesound.common.Text
 import com.futurice.freesound.feature.audio.AudioPlayer
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import io.reactivex.Completable
-import io.reactivex.Flowable
+import io.reactivex.FlowableTransformer
 import java.util.concurrent.TimeUnit
 
 @VisibleForTesting
@@ -66,59 +65,54 @@ class SearchActivityViewModel(private val searchService: SearchService,
         audioPlayer.release()
     }
 
-    override fun transformEventToState(state: SearchActivityState) = withTransforms(state,
-            performSearch(),
-            observeSearch(),
-            clearSearch()
-    )
+    override fun transforms() = listOf(
+            searchTermChangedToPerformSearch(),
+            loadSearchResultsToObserveSearch(),
+            searchTermClearedToClearSearch())
 
-    private fun performSearch() =
-  { state: SearchActivityState ->
-      async<>()Dispatcher<SearchActivityEvent, SearchActivityState> { events ->
-                    events.ofType(SearchActivityEvent.SearchTermChanged::class.java)
-                            .map { it.searchTerm }
-                            .distinctUntilChanged()
-                            .switchMap { searchOrClear(it) }
-                            .map { state } // no-op - we observe state change indirectly
-                }
-            }
+    private fun searchTermChangedToPerformSearch() =
+            fromEventStream<SearchActivityEvent.SearchTermChanged, Unit, SearchActivityState>(
+                    transform = FlowableTransformer { events ->
+                        events.map { it.searchTerm }
+                                .distinctUntilChanged()
+                                .switchMap { searchOrClear(it) }
+                    }
+            )
 
     private fun searchOrClear(searchTerm: String) =
-            if (searchTerm.isEmpty()) clearResults()
-            else performSearch(searchTerm)
+            (if (searchTerm.isEmpty()) clearResults()
+            else performSearch(searchTerm)).map { Unit }
 
-    private fun observeSearch() =
-            { state: SearchActivityState ->
-                Dispatcher<SearchActivityEvent, SearchActivityState> {
-                    it.ofType(SearchActivityEvent.LoadSearchResults::class.java)
-                            .switchMap { searchService.searchState.asUiStateFlowable() }
-                            .map { searchState -> toSearchActivityState(state, searchState) }
-                }
-            }
+    private fun loadSearchResultsToObserveSearch() =
+            fromEventStream<SearchActivityEvent.LoadSearchResults, SearchState, SearchActivityState>(
+                    transform = FlowableTransformer {
+                        it.switchMap { searchService.searchState.asUiStateFlowable() }
+                    },
+                    stateUpdate = toSearchActivityState())
 
-    private fun toSearchActivityState(state: SearchActivityState, searchState: SearchState): SearchActivityState =
-            when (searchState) {
-                SearchState.Initial -> SearchActivityState()
-                is SearchState.InProgress -> state.copy(searchTerm = searchState.searchTerm,
-                        isClearEnabled = isClearEnabled(searchState.searchTerm),
-                        isInProgress = true,
-                        errorMessage = null)
-                is SearchState.Success -> state.copy(searchTerm = searchState.searchTerm,
+    private fun toSearchActivityState() = { state: SearchActivityState, searchState: SearchState ->
+        when (searchState) {
+            SearchState.Initial -> SearchActivityState()
+            is SearchState.InProgress -> state.copy(searchTerm = searchState.searchTerm,
+                    isClearEnabled = isClearEnabled(searchState.searchTerm),
+                    isInProgress = true,
+                    errorMessage = null)
+            is SearchState.Success -> state.copy(searchTerm = searchState.searchTerm,
+                    isInProgress = false,
+                    isClearEnabled = isClearEnabled(searchState.searchTerm),
+                    errorMessage = null)
+            is SearchState.Error ->
+                state.copy(searchTerm = searchState.searchTerm,
                         isInProgress = false,
                         isClearEnabled = isClearEnabled(searchState.searchTerm),
-                        errorMessage = null)
-                is SearchState.Error ->
-                    state.copy(searchTerm = searchState.searchTerm,
-                            isInProgress = false,
-                            isClearEnabled = isClearEnabled(searchState.searchTerm),
-                            errorMessage = searchState.reason.message)
-            }
-
-    private fun performSearch(searchTerm: String): Flowable<Any> {
-        return debounceQuery()
-                .andThen(search(searchTerm))
-                .toFlowable()
+                        errorMessage = searchState.reason.message)
+        }
     }
+
+    private fun performSearch(searchTerm: String) =
+            debounceQuery()
+                    .andThen(search(searchTerm))
+                    .toFlowable<Any>()
 
     private fun search(searchTerm: String) = searchService.search(searchTerm)
 
@@ -127,16 +121,13 @@ class SearchActivityViewModel(private val searchService: SearchService,
                     TimeUnit.MILLISECONDS,
                     schedulerProvider.time(SEARCH_DEBOUNCE_TAG))
 
-    private fun clearSearch() =
-            { state: SearchActivityState ->
-                Dispatcher<SearchActivityEvent, SearchActivityState> {
-                    it.ofType(SearchActivityEvent.SearchTermCleared::class.java)
-                            .flatMap { clearResults() }
-                            .map { state }
-                }
-            }
+    private fun searchTermClearedToClearSearch() =
+            fromEventStream<SearchActivityEvent.SearchTermCleared, Unit, SearchActivityState>(
+                    transform = FlowableTransformer {
+                        it.switchMap { clearResults() }
+                    })
 
-    private fun clearResults() = searchService.clear().toFlowable<Any>()
+    private fun clearResults() = searchService.clear().toFlowable<Unit>()
 
-    private fun isClearEnabled(searchTerm: String): Boolean = searchTerm.isNotEmpty()
+    private fun isClearEnabled(searchTerm: String) = searchTerm.isNotEmpty()
 }

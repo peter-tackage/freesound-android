@@ -24,8 +24,6 @@ import com.futurice.freesound.feature.common.DisplayableItem
 import com.futurice.freesound.feature.common.Navigator
 import com.futurice.freesound.network.api.model.Sound
 
-import io.reactivex.Observable
-
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import com.futurice.freesound.feature.search.SearchConstants.SearchResultListItems.SOUND
 import io.reactivex.FlowableTransformer
@@ -54,7 +52,7 @@ class SearchFragmentViewModel(private val searchService: SearchService,
     override fun transforms() = listOf(loadSounds(), openSoundDetails())
 
     private fun loadSounds() =
-            async<SearchFragmentEvent.LoadSearchResults, SearchState, SearchFragmentState>(
+            fromEventStream<SearchFragmentEvent.LoadSearchResults, SearchState, SearchFragmentState>(
                     transform = FlowableTransformer {
                         searchService.searchState.asUiStateFlowable<SearchState>()
                                 .doOnNext { stopPlayback() }
@@ -68,29 +66,17 @@ class SearchFragmentViewModel(private val searchService: SearchService,
                     SearchState.Initial -> SearchFragmentState(false)
                     is SearchState.InProgress -> state.copy(inProgress = true)
                     is SearchState.Success -> state.copy(inProgress = false,
-                            sounds = wrapInDisplayableItem(result.results))
+                            sounds = toDisplayableItem(result.results))
                     is SearchState.Error -> state.copy(inProgress = false)
                 }
             }
 
     private fun openSoundDetails() =
-            sync<SearchFragmentEvent.OpenSoundDetails, SearchFragmentState>(
-                    stateUpdate = { state, event -> openSoundDetails(event.sound); state }
+            fromEventDo<SearchFragmentEvent.OpenSoundDetails, SearchFragmentState>(
+                    stateUpdate = { _, event -> openSoundDetails(event.sound) }
             )
 
-    private fun stopPlayback() {
-        audioPlayer.stopPlayback()
-    }
-
-    private fun openSoundDetails(sound: Sound) {
-        navigator.openSoundDetails(sound)
-    }
-
-    private fun wrapInDisplayableItem(
-            sounds: List<Sound>): List<DisplayableItem<Sound>> {
-        return Observable.fromIterable(sounds)
-                .map { sound -> DisplayableItem(sound, SOUND) }
-                .toList()
-                .blockingGet()
-    }
+    private fun stopPlayback() = audioPlayer.stopPlayback()
+    private fun openSoundDetails(sound: Sound) = navigator.openSoundDetails(sound)
+    private fun toDisplayableItem(sounds: List<Sound>) = sounds.map { sound -> DisplayableItem(sound, SOUND) }
 }
