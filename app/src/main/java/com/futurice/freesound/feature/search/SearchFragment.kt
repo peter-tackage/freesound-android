@@ -75,7 +75,7 @@ class SearchFragment :
 
     override fun createComponent(): SearchFragmentComponent =
             (activity as SearchActivity).component()
-                    .plusSearchFragmentComponent(BaseFragmentModule(this))
+                    .plusSearchFragmentComponent(BaseFragmentModule(this), SearchFragmentModule(this))
 
     private fun handleResults(sounds: List<DisplayableItem<Sound>>?) {
         if (sounds != null) showResults(sounds) else showNothing()

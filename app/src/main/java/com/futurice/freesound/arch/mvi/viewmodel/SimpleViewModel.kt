@@ -85,6 +85,6 @@ abstract class SimpleViewModel<E, S>(private val initialState: S,
         }
     }
 
-    abstract protected fun transforms(): List<(state: S) -> FlowableTransformer<in E, out S>>
+    protected abstract fun transforms(): List<(state: S) -> FlowableTransformer<in E, out S>>
 
 }

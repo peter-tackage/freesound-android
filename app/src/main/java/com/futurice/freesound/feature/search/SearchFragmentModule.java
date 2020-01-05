@@ -16,6 +16,8 @@
 
 package com.futurice.freesound.feature.search;
 
+import com.futurice.freesound.arch.mvi.TransitionObserver;
+import com.futurice.freesound.arch.mvi.view.Binder;
 import com.futurice.freesound.feature.audio.AudioPlayer;
 import com.futurice.freesound.feature.common.Navigator;
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider;
@@ -23,13 +25,18 @@ import com.futurice.freesound.feature.common.ui.adapter.ItemComparator;
 import com.futurice.freesound.feature.common.ui.adapter.RecyclerViewAdapter;
 import com.futurice.freesound.feature.common.ui.adapter.ViewHolderBinder;
 import com.futurice.freesound.feature.common.ui.adapter.ViewHolderFactory;
+import com.futurice.freesound.inject.activity.ActivityScope;
 import com.futurice.freesound.inject.activity.ForActivity;
 import com.futurice.freesound.inject.fragment.BaseFragmentModule;
 import com.futurice.freesound.inject.fragment.FragmentScope;
 import com.futurice.freesound.network.api.model.Sound;
 import com.squareup.picasso.Picasso;
 
+import android.arch.lifecycle.ViewModel;
+import android.arch.lifecycle.ViewModelProvider;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
+import android.support.annotation.NonNull;
 
 import java.util.Map;
 
@@ -43,12 +50,36 @@ import static com.futurice.freesound.feature.search.SearchConstants.SearchResult
 @Module(includes = BaseFragmentModule.class)
 public class SearchFragmentModule {
 
+    private final SearchFragment searchFragment;
+
+    public SearchFragmentModule(SearchFragment searchFragment) {
+        this.searchFragment = searchFragment;
+    }
+
     @Provides
     @FragmentScope
-    static SearchFragmentViewModel provideSearchFragmentViewModel(SearchService searchService,
-                                                                  Navigator navigator,
-                                                                  AudioPlayer audioPlayer) {
-        return new SearchFragmentViewModel(searchService, navigator, audioPlayer);
+    SearchFragmentViewModel provideSearchFragmentViewModel(SearchService searchService,
+                                                           Navigator navigator,
+                                                           AudioPlayer audioPlayer,
+                                                           SchedulerProvider schedulerProvider,
+                                                           TransitionObserver transitionObserver) {
+
+        return ViewModelProviders.of(searchFragment, new ViewModelProvider.Factory() {
+            @SuppressWarnings("unchecked")
+            @NonNull
+            @Override
+            public <T extends ViewModel> T create(@NonNull final Class<T> modelClass) {
+                return (T) new SearchFragmentViewModel(searchService, navigator, audioPlayer, schedulerProvider, transitionObserver);
+            }
+        }).get(SearchFragmentViewModel.class);
+
+    }
+
+    @Provides
+    @FragmentScope
+    Binder<SearchFragmentEvent, SearchFragmentState, SearchFragmentViewModel> provideBinder(
+            SearchFragmentViewModel viewModel) {
+        return new Binder<>(searchFragment, viewModel, searchFragment);
     }
 
     @Provides
@@ -58,7 +89,7 @@ public class SearchFragmentModule {
                                                       Map<Integer, ViewHolderBinder<Sound>> binderMap,
                                                       SchedulerProvider schedulerProvider) {
         return new RecyclerViewAdapter<>(itemComparator, factoryMap, binderMap,
-                                              schedulerProvider);
+                schedulerProvider);
     }
 
     @Provides
@@ -73,8 +104,8 @@ public class SearchFragmentModule {
                                                     Picasso picasso,
                                                     SchedulerProvider schedulerProvider) {
         return new SoundItemViewHolder.SoundItemViewHolderFactory(context,
-                                                                  picasso,
-                                                                  schedulerProvider);
+                picasso,
+                schedulerProvider);
     }
 
     @IntoMap
