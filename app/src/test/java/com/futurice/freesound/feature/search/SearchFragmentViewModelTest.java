@@ -16,34 +16,47 @@
 
 package com.futurice.freesound.feature.search;
 
+import com.futurice.freesound.arch.mvi.TransitionObserver;
 import com.futurice.freesound.feature.audio.AudioPlayer;
 import com.futurice.freesound.feature.common.DisplayableItem;
 import com.futurice.freesound.feature.common.Navigator;
 import com.futurice.freesound.network.api.model.Sound;
 import com.futurice.freesound.test.data.TestData;
+import com.futurice.freesound.test.rx.TrampolineSchedulerProvider;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import android.arch.core.executor.testing.InstantTaskExecutorRule;
 import android.support.annotation.NonNull;
 
 import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
-import polanski.option.Option;
 
 import static com.futurice.freesound.feature.search.SearchConstants.SearchResultListItems.SOUND;
-import static com.futurice.freesound.test.assertion.rx.RxJava2OptionAssertions.hasOptionValue;
-import static com.futurice.freesound.test.assertion.rx.RxJava2OptionAssertions.isNone;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static polanski.option.Option.ofObj;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SearchFragmentViewModelTest {
+
+    private static final String ANY_QUERY = "abc";
+
+    private static final SearchFragmentState INITIAL_STATE = new SearchFragmentState(false, null);
+
+    @Rule
+    public TestRule rule = new InstantTaskExecutorRule();
 
     @Mock
     private SearchService searchService;
@@ -54,93 +67,126 @@ public class SearchFragmentViewModelTest {
     @Mock
     private AudioPlayer audioPlayer;
 
+    @Mock
+    private TransitionObserver transitionObserver;
+
     private SearchFragmentViewModel viewModel;
 
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        viewModel = new SearchFragmentViewModel(searchService, navigator, audioPlayer);
+    @NotNull
+    private SearchFragmentViewModel newInstance() {
+        return new SearchFragmentViewModel(INITIAL_STATE, searchService, navigator, audioPlayer,
+                new TrampolineSchedulerProvider(), transitionObserver);
     }
 
     @Test
-    public void getSounds_emitsNone_whenSearchResultsIsNone() {
-        new Arrangement().enqueueSearchResults(Option.none());
-
-        viewModel.getSoundsOnceAndStream()
-                 .test()
-                 .assertValue(isNone());
-    }
-
-    @Test
-    public void getSounds_emitsSearchResultsWrappedInDisplayableItems() {
-        List<Sound> sounds = TestData.sounds(10);
-        new Arrangement().enqueueSearchResults(ofObj(sounds));
-
-        viewModel.getSoundsOnceAndStream()
-                 .test()
-                 .assertValue(expectedDisplayableItems(sounds));
-    }
-
-    @Test
-    public void stopsAudioPlayback_byDefault() {
+    public void uiState_emitsInitialState_whenNoEvent() {
+        // given, when
         new Arrangement();
+        viewModel = newInstance();
 
-        viewModel.getSoundsOnceAndStream()
-                 .test();
+        // then
+        assertThat(viewModel.uiState()
+                .getValue()).isEqualTo(INITIAL_STATE);
+    }
 
+    //
+    // These test the state mapping behaviour from an initial SearchState.
+    //
+
+    @Test
+    public void uiState_isInProgress_whenInitiallyInProgress() {
+        // given, when
+        new Arrangement().withSearchState(new SearchState.InProgress(ANY_QUERY));
+        viewModel = newInstance();
+
+        // then
+        assertThat(viewModel.uiState().getValue())
+                .isEqualTo(new SearchFragmentState(true, null));
+    }
+
+    @Test
+    public void uiState_hasSounds_whenInitiallySuccessfulSearch() {
+        // given, when
+        List<Sound> sounds = TestData.sounds(10);
+        new Arrangement()
+                .withSearchState(new SearchState.Success(ANY_QUERY, sounds));
+        viewModel = newInstance();
+
+        // then
+        assertThat(viewModel.uiState().getValue())
+                .isEqualTo(new SearchFragmentState(false, expectedDisplayableItemsOf(sounds)));
+    }
+
+    @Test
+    public void uiState_isNotInProgress_whenInitiallyError() {
+        // given, when
+        new Arrangement()
+                .withSearchState(new SearchState.Error(ANY_QUERY, new Exception("msg")));
+        viewModel = newInstance();
+
+        // then
+        assertThat(viewModel.uiState().getValue())
+                .isEqualTo(new SearchFragmentState(false, null));
+    }
+
+    @Test
+    public void stopsAudioPlayback_whenInitializing() {
+        // given/when
+        new Arrangement();
+        viewModel = newInstance();
+
+        // then
         verify(audioPlayer).stopPlayback();
     }
 
     @Test
-    public void stopsAudioPlayback_whenSearchResultChange() {
+    public void audioPlaybackStops_whenSearchResultChange() {
+        // given
         Arrangement arrangement = new Arrangement();
-        viewModel.getSoundsOnceAndStream()
-                 .test();
-        reset(audioPlayer); // is invoked by default, so reset the mock invocation count.
+        viewModel = newInstance();
+        reset(audioPlayer); // is also invoked on initialization, so reset the mock invocation count.
 
-        arrangement.enqueueSearchResults(ofObj(TestData.sounds(10)));
+        // when
+        arrangement.withSearchState(new SearchState.Success(ANY_QUERY, TestData.sounds(10)));
 
+        // then
         verify(audioPlayer).stopPlayback();
     }
 
-    @Test
-    public void stopPlayback_stopsAudioPlayback() {
-        viewModel.stopPlayback();
+    //
+    // Test for interesting changes in state
+    //
 
-        verify(audioPlayer).stopPlayback();
-    }
 
     // Helpers
 
     @NonNull
-    private static List<DisplayableItem<Sound>> expectedDisplayableItems(
+    private static List<DisplayableItem<Sound>> expectedDisplayableItemsOf(
             @NonNull final List<Sound> sounds) {
         return Observable.fromIterable(sounds)
-                         .map(it -> new DisplayableItem<>(it, SOUND))
-                         .toList()
-                         .blockingGet();
+                .map(it -> new DisplayableItem<>(it, SOUND))
+                .toList()
+                .blockingGet();
     }
 
     @SuppressWarnings("UnusedReturnValue")
     private class Arrangement {
 
         private final BehaviorSubject<SearchState> mockedSearchResultsStream
-                = BehaviorSubject.createDefault(SearchState.Initial.INSTANCE);
+                = BehaviorSubject.createDefault(SearchState.Initialized.INSTANCE);
 
         Arrangement() {
-            withSuccessfulSearchResultStream();
+            withSearchResultStream();
         }
 
-        Arrangement withSuccessfulSearchResultStream() {
+        private void withSearchResultStream() {
             when(searchService.getSearchState())
                     .thenReturn(mockedSearchResultsStream);
-            return this;
         }
 
-        Arrangement enqueueSearchResults(String query, List<Sound> sounds) {
-             mockedSearchResultsStream.onNext(new SearchState.Success(query, sounds));
-             return this;
+        Arrangement withSearchState(SearchState searchState) {
+            mockedSearchResultsStream.onNext(searchState);
+            return this;
         }
 
     }

@@ -31,7 +31,7 @@ import com.futurice.freesound.common.utils.Preconditions.get
 internal class DefaultSearchService(private val freeSoundApiService: FreeSoundApiService,
                                     private val schedulerProvider: SchedulerProvider) : SearchService {
 
-    private val searchStateStream = BehaviorSubject.createDefault<SearchState>(SearchState.Initial)
+    private val searchStateStream = BehaviorSubject.createDefault<SearchState>(SearchState.Initialized)
 
     override fun search(query: String): Completable {
         return freeSoundApiService.search(get(query))
@@ -59,7 +59,7 @@ internal class DefaultSearchService(private val freeSoundApiService: FreeSoundAp
     }
 
     private fun reportClear() {
-        searchStateStream.onNext(SearchState.Initial)
+        searchStateStream.onNext(SearchState.Initialized)
     }
 
     private fun reportInProgress(searchTerm: String) {

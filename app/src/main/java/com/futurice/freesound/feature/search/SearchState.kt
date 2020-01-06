@@ -19,8 +19,8 @@ package com.futurice.freesound.feature.search;
 import com.futurice.freesound.network.api.model.Sound;
 
 sealed class SearchState {
-    object Initial : SearchState()
+    object Initialized : SearchState()
     data class InProgress(val searchTerm: String) : SearchState()
-    data class Success(val searchTerm: String, val results: List<Sound>): SearchState()
-    data class Error(val searchTerm: String, val reason: Throwable): SearchState()
+    data class Success(val searchTerm: String, val results: List<Sound>) : SearchState()
+    data class Error(val searchTerm: String, val reason: Throwable) : SearchState()
 }

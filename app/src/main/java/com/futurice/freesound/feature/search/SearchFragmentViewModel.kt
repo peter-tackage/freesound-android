@@ -36,13 +36,14 @@ sealed class SearchFragmentEvent {
 data class SearchFragmentState(val inProgress: Boolean,
                                val sounds: List<DisplayableItem<Sound>>? = null)
 
-class SearchFragmentViewModel(private val searchService: SearchService,
+class SearchFragmentViewModel(initialState: SearchFragmentState,
+                              private val searchService: SearchService,
                               private val navigator: Navigator,
                               private val audioPlayer: AudioPlayer,
                               schedulerProvider: SchedulerProvider,
                               transitionObserver: TransitionObserver) :
         SimpleViewModel<SearchFragmentEvent, SearchFragmentState>(
-                SearchFragmentState(false),
+                initialState,
                 schedulerProvider, transitionObserver, "SearchFragmentViewModel") {
     init {
         bind()
@@ -63,7 +64,7 @@ class SearchFragmentViewModel(private val searchService: SearchService,
     private fun updateStateFromSearchState() =
             { state: SearchFragmentState, result: SearchState ->
                 when (result) {
-                    SearchState.Initial -> SearchFragmentState(false)
+                    SearchState.Initialized -> SearchFragmentState(false)
                     is SearchState.InProgress -> state.copy(inProgress = true)
                     is SearchState.Success -> state.copy(inProgress = false,
                             sounds = toDisplayableItem(result.results))

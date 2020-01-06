@@ -20,14 +20,12 @@ import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
 import android.support.annotation.NonNull;
-import android.support.v4.app.FragmentActivity;
 
 import com.futurice.freesound.arch.mvi.TransitionObserver;
 import com.futurice.freesound.arch.mvi.view.Binder;
 import com.futurice.freesound.feature.audio.AudioModule;
 import com.futurice.freesound.feature.audio.AudioPlayer;
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider;
-import com.futurice.freesound.feature.home.user.HomeFragmentViewModel;
 import com.futurice.freesound.inject.activity.ActivityScope;
 import com.futurice.freesound.inject.activity.BaseActivityModule;
 import com.futurice.freesound.network.api.FreeSoundApiService;
@@ -45,7 +43,7 @@ public class SearchActivityModule {
     }
 
     @Provides
-     SearchActivityViewModel provideSearchViewModel(
+    SearchActivityViewModel provideSearchViewModel(
             SearchService searchService,
             AudioPlayer audioPlayer,
             SchedulerProvider schedulerProvider,
@@ -64,7 +62,6 @@ public class SearchActivityModule {
         }).get(SearchActivityViewModel.class);
 
     }
-
 
     @Provides
     @ActivityScope

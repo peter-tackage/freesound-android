@@ -157,7 +157,7 @@ public class SearchActivityViewModelTest {
         TestScheduler testScheduler = new TestScheduler();
         new ArrangeBuilder()
                 .withTimeScheduler(testScheduler);
-                viewModel.uiEvent(new SearchActivityEvent.SearchTermChanged(DUMMY_QUERY));
+        viewModel.uiEvent(new SearchActivityEvent.SearchTermChanged(DUMMY_QUERY));
 
         testScheduler.advanceTimeBy(SEARCH_DEBOUNCE_TIME_MILLIS_SECONDS,
                 TimeUnit.SECONDS);
@@ -194,7 +194,7 @@ public class SearchActivityViewModelTest {
     private class ArrangeBuilder {
 
         private final BehaviorSubject<SearchState> searchResultsStream = BehaviorSubject
-                .createDefault(SearchState.Initial.INSTANCE);
+                .createDefault(SearchState.Initialized.INSTANCE);
 
         ArrangeBuilder() {
             Mockito.when(searchService.getSearchState()).thenReturn(searchResultsStream);

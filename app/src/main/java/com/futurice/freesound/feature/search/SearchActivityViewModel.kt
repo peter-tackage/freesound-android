@@ -92,7 +92,7 @@ class SearchActivityViewModel(private val searchService: SearchService,
 
     private fun toSearchActivityState() = { state: SearchActivityState, searchState: SearchState ->
         when (searchState) {
-            SearchState.Initial -> SearchActivityState()
+            SearchState.Initialized -> SearchActivityState()
             is SearchState.InProgress -> state.copy(searchTerm = searchState.searchTerm,
                     isClearEnabled = isClearEnabled(searchState.searchTerm),
                     isInProgress = true,

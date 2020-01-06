@@ -80,7 +80,7 @@ class DefaultSearchServiceTest {
         defaultSearchService.searchState
                 .test()
                 .assertNotTerminated()
-                .assertValue(SearchState.Initial)
+                .assertValue(SearchState.Initialized)
     }
 
     @Test
@@ -185,7 +185,7 @@ class DefaultSearchServiceTest {
         defaultSearchService.searchState
                 .test()
                 .assertValueCount(1)
-                .assertValue(SearchState.Initial)
+                .assertValue(SearchState.Initialized)
                 .assertNotTerminated()
     }
 

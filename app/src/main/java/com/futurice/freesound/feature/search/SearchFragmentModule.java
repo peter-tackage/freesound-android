@@ -69,7 +69,9 @@ public class SearchFragmentModule {
             @NonNull
             @Override
             public <T extends ViewModel> T create(@NonNull final Class<T> modelClass) {
-                return (T) new SearchFragmentViewModel(searchService, navigator, audioPlayer, schedulerProvider, transitionObserver);
+                return (T) new SearchFragmentViewModel(
+                        new SearchFragmentState(false, null),
+                        searchService, navigator, audioPlayer, schedulerProvider, transitionObserver);
             }
         }).get(SearchFragmentViewModel.class);
 
