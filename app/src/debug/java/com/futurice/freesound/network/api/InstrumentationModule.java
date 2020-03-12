@@ -66,8 +66,4 @@ public final class InstrumentationModule {
         return new StethoInterceptor();
     }
 
-    //@Provides
-    // static ChuckInterceptor provideChuckInterceptor(@ForApplication Context context) {
-    //     return new ChuckInterceptor(context);
-    // }
 }
