@@ -29,12 +29,12 @@ internal interface ObservableExoPlayer {
      *
      * @return the Observable [ExoPlayerState].
      */
-    fun getExoPlayerStateOnceAndStream(): Observable<ExoPlayerState>
+     val exoPlayerStateOnceAndStream: Observable<ExoPlayerState>
 
     /**
      * ExoPlayer current playback time position with initial value.
      *
      * @return the Observable playback time position in milliseconds.
      */
-    fun getTimePositionMsOnceAndStream(update: Long, timeUnit: TimeUnit): Observable<Long>
+    val timePositionMsOnceAndStream: Observable<Long>
 }

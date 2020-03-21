@@ -90,7 +90,7 @@ final class DefaultSearchDataModel implements SearchDataModel {
         //  2. I really want to get rid of AutoValue and this is the last usage of it.
 
         if (error.isSome()) {
-            // No combining errors and existing state, sorry.
+            // No combining errors and existing status, sorry.
             return new SearchState.Error(OptionUnsafe.getUnsafe(error));
         }
 

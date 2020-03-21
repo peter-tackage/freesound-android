@@ -16,138 +16,173 @@
 
 package com.futurice.freesound.feature.audio
 
-import androidx.core.util.Pair
+import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import io.reactivex.Observable
 import io.reactivex.disposables.SerialDisposable
 import io.reactivex.subjects.PublishSubject
-import polanski.option.AtomicOption
-import polanski.option.Option
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 /**
  * AudioPlayer implementation that uses ExoPlayer 2.
  *
- *
  * This is not thread safe; you should only issue commands from the initialization thread.
- *
  *
  * ExoPlayer documentation recommends that the player instance is only interacted with from
  * a single thread. Callbacks are provided on the same thread that initialized the ExoPlayer
  * instance.
  *
- *
  * NOTE: I haven't yet found a way to determine the current playing source in ExoPlayer, so this
  * class needs to retain the URL itself. As a consequence, keep this instance with the same scope
  * as the underlying ExoPlayer instance. Otherwise you could arrive at a situation where ExoPlayer
  * is playing a source and this instance has no current URL defined.
+ *
+ * From what I can still see, this explanation to keep your own URI is still recommended:
+ *  https://github.com/google/ExoPlayer/issues/2328
  */
 internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
-                                    private val observableExoPlayer: ObservableExoPlayer,
-                                    private val mediaSourceFactory: MediaSourceFactory) : AudioPlayer {
+                                    private val mediaSourceFactory: MediaSourceFactory,
+                                    private val updatePeriod: Long,
+                                    private val timeUnit: TimeUnit,
+                                    private val schedulerProvider: SchedulerProvider) : AudioPlayer {
 
     companion object {
-        private val DEFAULT_UPDATE_PERIOD_MILLIS = 50
+        private val PLAYER_PROGRESS_SCHEDULER_TAG = "PLAYER_PROGRESS_SCHEDULER"
     }
 
-    private val playerStateDisposable = SerialDisposable()
-    private val toggleSourceStream = PublishSubject.create<PlaybackSource>()
-    private val currentSource = AtomicOption<PlaybackSource>()
+    private val playbackSourceRequestDisposable = SerialDisposable()
+    private val playbackSourceRequestStream = PublishSubject.create<PlaybackSource>()
+    private lateinit var currentPlaybackSource: PlaybackSource // initialized on first request
 
-    override val playerStateOnceAndStream: Observable<PlayerState>
-        get() = observableExoPlayer.getExoPlayerStateOnceAndStream()
-                .map { it.toState() }
-                .map { state -> PlayerState(state, currentSource.get()) }
+    private val exoPlayerStateOnceAndStream = ExoPlayerStateObservable(exoPlayer)
+    private val exoPlayerTimePositionMsOnceAndStream = ExoPlayerProgressObservable(exoPlayer)
 
-    override val timePositionMsOnceAndStream: Observable<Long>
-        get() = observableExoPlayer.getTimePositionMsOnceAndStream(DEFAULT_UPDATE_PERIOD_MILLIS.toLong(),
-                TimeUnit.MILLISECONDS)
+    override val playerStateOnceAndStream: Observable<out PlayerState>
+        get() = definePlayerStateObservable()
 
-    private enum class ToggleAction {
-        PAUSE,
-        UNPAUSE,
-        PLAY
+    private fun definePlayerStateObservable(): Observable<PlayerState> {
+        return exoPlayerStateOnceAndStream
+                .switchMap { exoPlayerState ->
+                    if (exoPlayerState.playbackState == Player.STATE_IDLE)
+                        Observable.just(PlayerState.Idle)
+                    else
+                        streamPlayerUpdates()
+                                .map { positionMs ->
+                                    toPlayerState(currentPlaybackSource, exoPlayerState.toPlaybackStatus(), positionMs)
+                                }
+
+                }
     }
+
+    private fun toPlayerState(source: PlaybackSource,
+                              status: PlaybackStatus,
+                              positionMs: Long
+    ) = PlayerState.Assigned(source, status, positionMs)
 
     override fun init() {
-        playerStateDisposable
-                .set(toggleSourceStream.concatMap { playbackSource ->
-                    observableExoPlayer
-                            .getExoPlayerStateOnceAndStream()
-                            .take(1)
-                            .map { exoPlayerState -> toToggleAction(playbackSource, exoPlayerState) }
-                            .map { action -> Pair.create(action, playbackSource) }
-                }
-                        .subscribe({ pair -> handleToggleAction(pair.first!!, pair.second!!) },
+        playbackSourceRequestDisposable
+                .set(playbackSourceRequestStream
+                        .switchMap { newPlaybackSource ->
+                            definePlayerStateObservable()
+                                    .take(1)
+                                    .map { currentPlayerState -> toPlaybackRequest(newPlaybackSource, currentPlayerState) }
+                                    .map { request -> Pair(request, newPlaybackSource) }
+                        }
+                        .subscribe({ pair -> handlePlaybackRequest(pair.first, pair.second) },
                                 { e -> Timber.e(e, "Fatal error toggling playback") }))
     }
 
     override fun togglePlayback(playbackSource: PlaybackSource) {
-        toggleSourceStream.onNext(playbackSource)
+        playbackSourceRequestStream.onNext(playbackSource)
     }
 
     override fun stopPlayback() {
-        stop()
+        performStop()
     }
 
     override fun release() {
-        playerStateDisposable.dispose()
+        playbackSourceRequestDisposable.dispose()
         exoPlayer.release()
     }
 
-    private fun toToggleAction(playbackSource: PlaybackSource,
-                               exoPlayerState: ExoPlayerState): ToggleAction {
-        return if (exoPlayerState.isIdle() || playbackSource.hasSourceChanged()) {
-            ToggleAction.PLAY
-        } else {
-            if (exoPlayerState.playWhenReady) ToggleAction.PAUSE else ToggleAction.UNPAUSE
-        }
+    private fun toPlaybackRequest(newPlaybackSource: PlaybackSource,
+                                  playerState: PlayerState): PlaybackRequest {
+        return when (playerState) {
+            PlayerState.Idle -> PlaybackRequest.PLAY
+            is PlayerState.Assigned -> if (playerState.source != newPlaybackSource || playerState.status == PlaybackStatus.ENDED || playerState.status == PlaybackStatus.ERROR) {
+                PlaybackRequest.PLAY
+            } else {
+                if (playerState.status == PlaybackStatus.PLAYING) PlaybackRequest.PAUSE else PlaybackRequest.RESUME
+            }
+        }.also { Timber.i("toPlaybackRequest: state: $playerState new: $newPlaybackSource, result: $it") }
     }
 
-    private fun handleToggleAction(action: ToggleAction,
-                                   playbackSource: PlaybackSource) =
-            when (action) {
-                ToggleAction.PLAY -> play(playbackSource)
-                ToggleAction.PAUSE, ToggleAction.UNPAUSE -> toggle(action)
-            }.also { Timber.v("Action: %s, URL: %s", action, playbackSource) }
+    private fun handlePlaybackRequest(request: PlaybackRequest,
+                                      playbackSource: PlaybackSource) {
 
-    private fun play(playbackSource: PlaybackSource) {
+        // Apply the change to the source
+        currentPlaybackSource = playbackSource
+
+        // Apply the change to ExoPlayer
+        when (request) {
+            PlaybackRequest.PLAY -> performPlay(playbackSource)
+            PlaybackRequest.PAUSE, PlaybackRequest.RESUME -> performToggle(request)
+        }.also { Timber.v("Request: %s, URL: %s", request, currentPlaybackSource) }
+    }
+
+
+    private fun performPlay(playbackSource: PlaybackSource) {
         exoPlayer.prepare(mediaSourceFactory.create(playbackSource.url))
         exoPlayer.playWhenReady = true
-        currentSource.set(Option.ofObj(playbackSource))
     }
 
-    private fun toggle(action: ToggleAction) {
-        exoPlayer.playWhenReady = action != ToggleAction.PAUSE
+    private fun performToggle(request: PlaybackRequest) {
+        exoPlayer.playWhenReady = request != PlaybackRequest.PAUSE
     }
 
-    private fun stop() {
-        currentSource.set(Option.none())
+    private fun performStop() {
         exoPlayer.stop()
     }
 
-    private fun PlaybackSource.hasSourceChanged(): Boolean {
-        return currentSource.get()
-                .map { playbackSource -> playbackSource != this }
-                .orDefault { false }
-    }
-
-    private fun ExoPlayerState.isIdle(): Boolean =
-            this.playbackState == Player.STATE_IDLE || this.playbackState == Player.STATE_ENDED
-
-    private fun ExoPlayerState.toState(): State {
-        when (playbackState) {
-            Player.STATE_IDLE -> return State.IDLE
-            Player.STATE_BUFFERING -> return State.BUFFERING
-            Player.STATE_READY -> return if (playWhenReady)
-                State.PLAYING
-            else
-                State.PAUSED
-            Player.STATE_ENDED -> return State.ENDED
-            else -> throw IllegalStateException("Unsupported ExoPlayer state: $this")
+    private fun ExoPlayerState.toPlaybackStatus(): PlaybackStatus {
+        return when (playbackState) {
+            Player.STATE_BUFFERING -> PlaybackStatus.BUFFERING
+            Player.STATE_READY -> if (playWhenReady)
+                PlaybackStatus.PLAYING else PlaybackStatus.PAUSED
+            Player.STATE_ENDED -> PlaybackStatus.ENDED
+            else -> throw IllegalStateException("Unsupported ExoPlayer status: $this")
         }
     }
+
+    private enum class PlaybackRequest {
+        PAUSE,
+        RESUME,
+        PLAY
+    }
+
+    private fun streamPlayerUpdates(): Observable<Long> {
+
+        fun asUpdatingProgressOnceAndStream(updatePeriod: Long,
+                                            timeUnit: TimeUnit) =
+                Observable.timer(updatePeriod, timeUnit,
+                        schedulerProvider.time(PLAYER_PROGRESS_SCHEDULER_TAG))
+                        .observeOn(schedulerProvider.ui())
+                        .repeat()
+                        .startWith(0L)
+                        .switchMap { exoPlayerTimePositionMsOnceAndStream }
+
+        fun ExoPlayerState.isTimelineChanging() =
+                playbackState == Player.STATE_READY && playWhenReady
+
+        return exoPlayerStateOnceAndStream
+                .switchMap { state ->
+                    if (state.isTimelineChanging())
+                        asUpdatingProgressOnceAndStream(updatePeriod, timeUnit)
+                    else exoPlayerTimePositionMsOnceAndStream
+                }
+    }
+
 
 }

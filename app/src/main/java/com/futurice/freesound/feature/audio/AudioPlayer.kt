@@ -26,18 +26,11 @@ import io.reactivex.Observable
 interface AudioPlayer : Releasable {
 
     /**
-     * Reports the initial player state and subsequent changes.
+     * Reports the initial player status and subsequent changes.
      *
      * @return A stream of the [PlayerState].
      */
-    val playerStateOnceAndStream: Observable<PlayerState>
-
-    /**
-     * Current playback time position with initial value.
-     *
-     * @return the Observable playback time position in milliseconds.
-     */
-    val timePositionMsOnceAndStream: Observable<Long>
+    val playerStateOnceAndStream: Observable<out PlayerState>
 
     /**
      * Initialize the player.

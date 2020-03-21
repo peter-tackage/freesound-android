@@ -21,41 +21,34 @@ import io.reactivex.Observable
 import io.reactivex.Observer
 
 /**
- * Make an Observable from the ExoPlayer player state.
+ * Make an Observable from the ExoPlayer player status.
  *
  * Based upon techniques used in the RxBinding library.
  */
 internal class ExoPlayerStateObservable(private val exoPlayer: ExoPlayer,
-                                        private val emitInitial: Boolean) : Observable<ExoPlayerState>() {
+                                        private val emitInitial: Boolean = true) : Observable<ExoPlayerState>() {
 
     override fun subscribeActual(observer: Observer<in ExoPlayerState>) {
         val listener = Listener(exoPlayer, observer)
         observer.onSubscribe(listener)
         exoPlayer.addListener(listener)
         if (emitInitial) {
-            emitValue(ExoPlayerState(exoPlayer.playWhenReady, exoPlayer.playbackState),
-                    observer)
+            observer.onNext(ExoPlayerState(exoPlayer.playWhenReady, exoPlayer.playbackState))
         }
     }
 
-    private class Listener internal constructor(exoPlayer: ExoPlayer,
-                                                observer: Observer<in ExoPlayerState>) : BaseAudioPlayerEventListener<ExoPlayerState>(exoPlayer, observer) {
+    private class Listener(exoPlayer: ExoPlayer,
+                           val observer: Observer<in ExoPlayerState>)
+        : BaseExoPlayerDisposable(exoPlayer) {
 
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             // Strictly speaking, this check is not required because the listener is removed
             // upon disposal, therefore ExoPlayer won't keep it around to notify of changes.
             if (!isDisposed) {
-                emitValue(ExoPlayerState(playWhenReady, playbackState), observer)
+                observer.onNext(ExoPlayerState(playWhenReady, playbackState))
             }
         }
 
     }
 
-    companion object {
-
-        private fun emitValue(exoPlayerState: ExoPlayerState,
-                              observer: Observer<in ExoPlayerState>) {
-            observer.onNext(exoPlayerState)
-        }
-    }
 }

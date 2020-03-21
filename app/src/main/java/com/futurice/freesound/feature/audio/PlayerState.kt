@@ -16,10 +16,7 @@
 
 package com.futurice.freesound.feature.audio
 
-import polanski.option.Option
-
-enum class State {
-    IDLE,
+enum class PlaybackStatus {
     BUFFERING,
     PLAYING,
     PAUSED,
@@ -27,4 +24,11 @@ enum class State {
     ERROR
 }
 
-data class PlayerState(val state: State, val source: Option<PlaybackSource>)
+// FIXME Just make Assignment nullable?
+sealed class PlayerState {
+    object Idle : PlayerState()
+    data class Assigned(
+            val source: PlaybackSource,
+            val status: PlaybackStatus,
+            val timePositionMs: Long) : PlayerState()
+}

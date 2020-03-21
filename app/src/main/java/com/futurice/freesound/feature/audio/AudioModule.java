@@ -39,9 +39,10 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
+import java.util.concurrent.TimeUnit;
+
 import dagger.Module;
 import dagger.Provides;
-import io.reactivex.Observable;
 
 @Module
 public class AudioModule {
@@ -65,9 +66,16 @@ public class AudioModule {
 
     @Provides
     ExoPlayerAudioPlayer provideExoPlayerAudioPlayer(ExoPlayer exoPlayer,
-                                                     ObservableExoPlayer observableExoPlayer,
-                                                     MediaSourceFactory mediaSourceFactory) {
-        return new ExoPlayerAudioPlayer(exoPlayer, observableExoPlayer, mediaSourceFactory);
+                                                     MediaSourceFactory mediaSourceFactory,
+                                                     SchedulerProvider schedulerProvider) {
+
+        final int DEFAULT_UPDATE_PERIOD_MILLIS = 50;
+
+        return new ExoPlayerAudioPlayer(exoPlayer,
+                mediaSourceFactory,
+                DEFAULT_UPDATE_PERIOD_MILLIS,
+                TimeUnit.MILLISECONDS,
+                schedulerProvider);
     }
 
     @Provides
@@ -76,31 +84,9 @@ public class AudioModule {
     }
 
     @Provides
-    static ExoPlayerStateObservable provideExoPlayerStateObservable(ExoPlayer exoPlayer) {
-        return new ExoPlayerStateObservable(exoPlayer, true);
-    }
-
-    @Provides
-    static ExoPlayerProgressObservable provideExoPlayerProgressObservable(ExoPlayer exoPlayer) {
-        return new ExoPlayerProgressObservable(exoPlayer, true);
-    }
-
-    @Provides
     @ActivityScope
     static ExoPlayer provideExoPlayer(SimpleExoPlayer simpleExoPlayer) {
         return simpleExoPlayer;
-    }
-
-    @Provides
-    static ObservableExoPlayer provideObservableExoPlayer(DefaultObservableExoPlayer exoPlayer) {
-        return exoPlayer;
-    }
-
-    @Provides
-    static DefaultObservableExoPlayer provideDefaultObservableExoPlayer(ExoPlayerStateObservable playerStateStream,
-                                                                        ExoPlayerProgressObservable playerProgressStream,
-                                                                        SchedulerProvider schedulerProvider) {
-        return new DefaultObservableExoPlayer(playerStateStream, playerProgressStream, schedulerProvider);
     }
 
     @Provides

@@ -19,62 +19,54 @@ package com.futurice.freesound.feature.audio
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Timeline
 
-import javax.inject.Inject
-
 import io.reactivex.Observable
 import io.reactivex.Observer
-
-import com.futurice.freesound.common.utils.Preconditions.get
 
 /**
  * Make an Observable from the ExoPlayer playback progress.
  *
- *
  * Based upon techniques used in the RxBinding library.
- *
  *
  * Note: There's no callback notification trigger only when the playback progress updates.
  * This means that consumers will need to resubscribe whenever they want to check the progress
  * updates. It's not much of an Observable!
  */
 internal class ExoPlayerProgressObservable(private val exoPlayer: ExoPlayer,
-                                           private val emitInitial: Boolean) : Observable<Long>() {
+                                           private val emitInitial: Boolean = true) : Observable<Long>() {
 
     override fun subscribeActual(observer: Observer<in Long>) {
-        val listener = Listener(exoPlayer, observer)
+        val listener = Listener(exoPlayer, { observer.emitCurrentTimePosition() })
         observer.onSubscribe(listener)
         exoPlayer.addListener(listener)
         if (emitInitial) {
-            emitValue(exoPlayer, observer)
+            observer.emitCurrentTimePosition()
         }
     }
 
-    private class Listener internal constructor(exoPlayer: ExoPlayer,
-                                                observer: Observer<in Long>) : BaseAudioPlayerEventListener<Long>(exoPlayer, observer) {
+    // FIXME, I'm wondering if all this is necessary.
+    private class Listener(exoPlayer: ExoPlayer,
+                           val handleTimeChange: () -> Unit)
+        : BaseExoPlayerDisposable(exoPlayer) {
 
         override fun onTimelineChanged(timeline: Timeline?, manifest: Any?, reason: Int) {
-            safeEmitValue()
+            onTimeChanged()
         }
 
         override fun onPositionDiscontinuity(reason: Int) {
-            safeEmitValue()
+            onTimeChanged()
         }
 
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            safeEmitValue()
+            onTimeChanged()
         }
 
-        private fun safeEmitValue() {
+        private fun onTimeChanged() {
             if (!isDisposed) {
-                emitValue(exoPlayer, observer)
+                handleTimeChange()
             }
         }
     }
 
-    companion object {
-        private fun emitValue(exoPlayer: ExoPlayer,
-                              observer: Observer<in Long>) {
-            observer.onNext(exoPlayer.currentPosition)
-        }
-    }
+    private fun Observer<in Long>.emitCurrentTimePosition() = onNext(exoPlayer.currentPosition)
+
 }
