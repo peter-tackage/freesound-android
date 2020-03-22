@@ -65,17 +65,22 @@ public class AudioModule {
     //
 
     @Provides
-    ExoPlayerAudioPlayer provideExoPlayerAudioPlayer(ExoPlayer exoPlayer,
-                                                     MediaSourceFactory mediaSourceFactory,
+    ExoPlayerAudioPlayer provideExoPlayerAudioPlayer(ObservableExoPlayer observableExoPlayer,
                                                      SchedulerProvider schedulerProvider) {
 
         final int DEFAULT_UPDATE_PERIOD_MILLIS = 50;
 
-        return new ExoPlayerAudioPlayer(exoPlayer,
-                mediaSourceFactory,
+        return new ExoPlayerAudioPlayer(
+                observableExoPlayer,
                 DEFAULT_UPDATE_PERIOD_MILLIS,
                 TimeUnit.MILLISECONDS,
                 schedulerProvider);
+    }
+
+    @Provides
+    static ObservableExoPlayer provideObservableExoPlayer(ExoPlayer exoPlayer,
+                                                          MediaSourceFactory mediaSourceFactory) {
+        return new DefaultObservableExoPlayer(exoPlayer, mediaSourceFactory);
     }
 
     @Provides

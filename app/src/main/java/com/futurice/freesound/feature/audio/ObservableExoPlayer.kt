@@ -17,19 +17,17 @@
 package com.futurice.freesound.feature.audio
 
 import io.reactivex.Observable
-import java.util.concurrent.TimeUnit
 
 /**
  * Represent the [com.google.android.exoplayer2.ExoPlayer] through Observables.
  */
 internal interface ObservableExoPlayer {
-
     /**
      * ExoPlayer state [Observable] with initial value.
      *
      * @return the Observable [ExoPlayerState].
      */
-     val exoPlayerStateOnceAndStream: Observable<ExoPlayerState>
+     val stateOnceAndStream: Observable<ExoPlayerState>
 
     /**
      * ExoPlayer current playback time position with initial value.
@@ -37,4 +35,14 @@ internal interface ObservableExoPlayer {
      * @return the Observable playback time position in milliseconds.
      */
     val timePositionMsOnceAndStream: Observable<Long>
+
+    fun play(url: String)
+
+    fun stop()
+
+    fun pause()
+
+    fun resume()
+
+    fun release()
 }

@@ -17,7 +17,6 @@
 package com.futurice.freesound.feature.audio
 
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
-import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import io.reactivex.Observable
 import io.reactivex.disposables.SerialDisposable
@@ -42,8 +41,7 @@ import java.util.concurrent.TimeUnit
  * From what I can still see, this explanation to keep your own URI is still recommended:
  *  https://github.com/google/ExoPlayer/issues/2328
  */
-internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
-                                    private val mediaSourceFactory: MediaSourceFactory,
+internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
                                     private val updatePeriod: Long,
                                     private val timeUnit: TimeUnit,
                                     private val schedulerProvider: SchedulerProvider) : AudioPlayer {
@@ -56,23 +54,19 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
     private val playbackSourceRequestStream = PublishSubject.create<PlaybackSource>()
     private lateinit var currentPlaybackSource: PlaybackSource // initialized on first request
 
-    private val exoPlayerStateOnceAndStream = ExoPlayerStateObservable(exoPlayer)
-    private val exoPlayerTimePositionMsOnceAndStream = ExoPlayerProgressObservable(exoPlayer)
-
     override val playerStateOnceAndStream: Observable<out PlayerState>
         get() = definePlayerStateObservable()
 
     private fun definePlayerStateObservable(): Observable<PlayerState> {
-        return exoPlayerStateOnceAndStream
+        return exoPlayer.stateOnceAndStream
                 .switchMap { exoPlayerState ->
                     if (exoPlayerState.playbackState == Player.STATE_IDLE)
                         Observable.just(PlayerState.Idle)
                     else
-                        streamPlayerUpdates()
+                        definePlayerTimePositionStream()
                                 .map { positionMs ->
                                     toPlayerState(currentPlaybackSource, exoPlayerState.toPlaybackStatus(), positionMs)
                                 }
-
                 }
     }
 
@@ -99,7 +93,7 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
     }
 
     override fun stopPlayback() {
-        performStop()
+        exoPlayer.stop()
     }
 
     override fun release() {
@@ -127,24 +121,12 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
 
         // Apply the change to ExoPlayer
         when (request) {
-            PlaybackRequest.PLAY -> performPlay(playbackSource)
-            PlaybackRequest.PAUSE, PlaybackRequest.RESUME -> performToggle(request)
+            PlaybackRequest.PLAY -> exoPlayer.play(playbackSource.url)
+            PlaybackRequest.PAUSE -> exoPlayer.pause()
+            PlaybackRequest.RESUME -> exoPlayer.resume()
         }.also { Timber.v("Request: %s, URL: %s", request, currentPlaybackSource) }
     }
 
-
-    private fun performPlay(playbackSource: PlaybackSource) {
-        exoPlayer.prepare(mediaSourceFactory.create(playbackSource.url))
-        exoPlayer.playWhenReady = true
-    }
-
-    private fun performToggle(request: PlaybackRequest) {
-        exoPlayer.playWhenReady = request != PlaybackRequest.PAUSE
-    }
-
-    private fun performStop() {
-        exoPlayer.stop()
-    }
 
     private fun ExoPlayerState.toPlaybackStatus(): PlaybackStatus {
         return when (playbackState) {
@@ -162,7 +144,7 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
         PLAY
     }
 
-    private fun streamPlayerUpdates(): Observable<Long> {
+    private fun definePlayerTimePositionStream(): Observable<Long> {
 
         fun asUpdatingProgressOnceAndStream(updatePeriod: Long,
                                             timeUnit: TimeUnit) =
@@ -171,18 +153,17 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ExoPlayer,
                         .observeOn(schedulerProvider.ui())
                         .repeat()
                         .startWith(0L)
-                        .switchMap { exoPlayerTimePositionMsOnceAndStream }
+                        .switchMap { exoPlayer.timePositionMsOnceAndStream }
 
         fun ExoPlayerState.isTimelineChanging() =
                 playbackState == Player.STATE_READY && playWhenReady
 
-        return exoPlayerStateOnceAndStream
+        return exoPlayer.stateOnceAndStream
                 .switchMap { state ->
                     if (state.isTimelineChanging())
                         asUpdatingProgressOnceAndStream(updatePeriod, timeUnit)
-                    else exoPlayerTimePositionMsOnceAndStream
+                    else exoPlayer.timePositionMsOnceAndStream
                 }
     }
-
 
 }
