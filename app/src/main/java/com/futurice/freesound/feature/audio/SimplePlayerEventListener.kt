@@ -9,44 +9,16 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 
 internal abstract class SimplePlayerEventListener : Player.EventListener {
 
-    override fun onTimelineChanged(timeline: Timeline?, manifest: Any?, reason: Int) {
-        // Override if needed
-    }
+    // Override if needed
 
-    override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
-        // Override if needed
-
-    }
-
-    override fun onLoadingChanged(isLoading: Boolean) {
-        // Override if needed
-    }
-
-    override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-        // Override if needed
-    }
-
-    override fun onRepeatModeChanged(repeatMode: Int) {
-        // Override if needed
-    }
-
-    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-        // Override if needed
-    }
-
-    override fun onPlayerError(error: ExoPlaybackException?) {
-        // Override if needed
-    }
-
-    override fun onPositionDiscontinuity(reason: Int) {
-        // Override if needed
-    }
-
-    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
-        // Override if needed
-    }
-
-    override fun onSeekProcessed() {
-        // Override if needed
-    }
+    override fun onTimelineChanged(timeline: Timeline?, manifest: Any?, reason: Int) {}
+    override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {}
+    override fun onLoadingChanged(isLoading: Boolean) {}
+    override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {}
+    override fun onRepeatModeChanged(repeatMode: Int) {}
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {}
+    override fun onPlayerError(error: ExoPlaybackException?) {}
+    override fun onPositionDiscontinuity(reason: Int) {}
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {}
+    override fun onSeekProcessed() {}
 }
