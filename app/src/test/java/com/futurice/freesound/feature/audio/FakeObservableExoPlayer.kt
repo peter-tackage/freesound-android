@@ -9,27 +9,50 @@ class FakeObservableExoPlayer(override val stateOnceAndStream: BehaviorSubject<E
                               = BehaviorSubject.createDefault(0)
 ) : ObservableExoPlayer {
 
-    override fun play(url: String) =
-            stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_READY))
+    private var isReleased: Boolean = false;
 
-    override fun stop() =
-            stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_IDLE))
+    override fun play(url: String) {
+        checkIsNotReleased()
+        stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_READY))
+    }
 
-    override fun pause() =
-            stateOnceAndStream.onNext(ExoPlayerState(false, Player.STATE_READY))
+    private fun checkIsNotReleased() {
+        require(!isReleased, { "Player has already been released" })
+    }
 
-    override fun resume() =
-            stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_READY))
+    override fun stop() {
+        checkIsNotReleased()
+        stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_IDLE))
+    }
 
-    override fun release() {}
+    override fun pause() {
+        checkIsNotReleased()
+        stateOnceAndStream.onNext(ExoPlayerState(false, Player.STATE_READY))
+    }
+
+    override fun resume() {
+        checkIsNotReleased()
+        stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_READY))
+    }
+
+    override fun release() {
+        isReleased = true
+    }
 
     fun end() {
+        checkIsNotReleased()
         stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_ENDED))
     }
 
     fun buffer() {
+        checkIsNotReleased()
         stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_BUFFERING))
     }
 
-    fun setProgress(progress: Long) = timePositionMsOnceAndStream.onNext(progress)
+    fun setProgress(progress: Long) {
+        checkIsNotReleased()
+        timePositionMsOnceAndStream.onNext(progress)
+    }
+
+    fun isReleased() = isReleased;
 }
