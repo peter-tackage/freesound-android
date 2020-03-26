@@ -65,6 +65,7 @@ public class AudioModule {
     //
 
     @Provides
+    @ActivityScope
     ExoPlayerAudioPlayer provideExoPlayerAudioPlayer(ObservableExoPlayer observableExoPlayer,
                                                      SchedulerProvider schedulerProvider) {
 

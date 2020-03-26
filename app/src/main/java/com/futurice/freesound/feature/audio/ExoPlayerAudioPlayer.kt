@@ -21,7 +21,6 @@ import com.google.android.exoplayer2.Player
 import io.reactivex.Observable
 import io.reactivex.disposables.SerialDisposable
 import io.reactivex.subjects.PublishSubject
-import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 /**
@@ -52,13 +51,14 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
 
     private val playbackSourceRequestDisposable = SerialDisposable()
     private val playbackSourceRequestStream = PublishSubject.create<PlaybackSource>()
-    private lateinit var currentPlaybackSource: PlaybackSource // initialized on first request
+    private var currentPlaybackSource: PlaybackSource? = null
 
     override val playerStateOnceAndStream: Observable<out PlayerState>
         get() = definePlayerStateObservable()
 
     private fun definePlayerStateObservable(): Observable<PlayerState> {
         return exoPlayer.stateOnceAndStream
+                .doOnNext { System.out.println("Top ExoPlayer State: $it") }
                 .switchMap { exoPlayerState ->
                     if (exoPlayerState.playbackState == Player.STATE_IDLE)
                         Observable.just(PlayerState.Idle)
@@ -66,26 +66,31 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
                         definePlayerTimePositionStream()
                                 .map { positionMs ->
                                     toPlayerState(currentPlaybackSource, exoPlayerState.toPlaybackStatus(), positionMs)
-                                }
+                                }.doOnEach { System.out.println("Some event: $it")}
                 }
     }
 
-    private fun toPlayerState(source: PlaybackSource,
+    private fun toPlayerState(source: PlaybackSource?,
                               status: PlaybackStatus,
                               positionMs: Long
-    ) = PlayerState.Assigned(source, status, positionMs)
+    ): PlayerState {
+        requireNotNull(source, { "Cannot created an Assigned state without a playback source" })
+        return PlayerState.Assigned(source, status, positionMs)
+    }
 
     override fun init() {
         playbackSourceRequestDisposable
                 .set(playbackSourceRequestStream
+                        .doOnNext { System.out.println("## New Source Request ##") }
                         .switchMap { newPlaybackSource ->
-                            definePlayerStateObservable()
+                            exoPlayer.stateOnceAndStream
                                     .take(1)
-                                    .map { currentPlayerState -> toPlaybackRequest(newPlaybackSource, currentPlayerState) }
+                                    .doOnNext { System.out.println("# PlayerState: $it") }
+                                    .map { exoPlayerState -> toPlaybackRequest(currentPlaybackSource, newPlaybackSource, exoPlayerState) }
                                     .map { request -> Pair(request, newPlaybackSource) }
                         }
                         .subscribe({ pair -> handlePlaybackRequest(pair.first, pair.second) },
-                                { e -> Timber.e(e, "Fatal error toggling playback") }))
+                                { e -> System.err.println("Fatal error toggling playback $e") }))
     }
 
     override fun togglePlayback(playbackSource: PlaybackSource) {
@@ -94,6 +99,7 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
 
     override fun stopPlayback() {
         exoPlayer.stop()
+        currentPlaybackSource = null // Stop makes ExoPlayer Idle, so we need to unset the source
     }
 
     override fun release() {
@@ -101,21 +107,28 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
         exoPlayer.release()
     }
 
-    private fun toPlaybackRequest(newPlaybackSource: PlaybackSource,
-                                  playerState: PlayerState): PlaybackRequest {
-        return when (playerState) {
-            PlayerState.Idle -> PlaybackRequest.PLAY
-            is PlayerState.Assigned -> if (playerState.source != newPlaybackSource || playerState.status == PlaybackStatus.ENDED || playerState.status == PlaybackStatus.ERROR) {
+    private fun toPlaybackRequest(current: PlaybackSource?,
+                                  requested: PlaybackSource,
+                                  exoPlayerState: ExoPlayerState): PlaybackRequest {
+
+        return if (exoPlayerState.playbackState == Player.STATE_IDLE) {
+            PlaybackRequest.PLAY
+        } else {
+            val playbackStatus: PlaybackStatus = exoPlayerState.toPlaybackStatus();
+            if ((requested.equals(current).not())
+                            .or(playbackStatus == PlaybackStatus.ENDED)
+                            .or(playbackStatus == PlaybackStatus.ERROR)) {
                 PlaybackRequest.PLAY
             } else {
-                if (playerState.status == PlaybackStatus.PLAYING) PlaybackRequest.PAUSE else PlaybackRequest.RESUME
+                if (playbackStatus == PlaybackStatus.PLAYING) PlaybackRequest.PAUSE
+                else PlaybackRequest.RESUME
             }
-        }.also { Timber.i("toPlaybackRequest: state: $playerState new: $newPlaybackSource, result: $it") }
+        }
     }
 
     private fun handlePlaybackRequest(request: PlaybackRequest,
                                       playbackSource: PlaybackSource) {
-
+        System.out.println("## Applying change: $request ##")
         // Apply the change to the source
         currentPlaybackSource = playbackSource
 
@@ -124,9 +137,8 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
             PlaybackRequest.PLAY -> exoPlayer.play(playbackSource.url)
             PlaybackRequest.PAUSE -> exoPlayer.pause()
             PlaybackRequest.RESUME -> exoPlayer.resume()
-        }.also { Timber.v("Request: %s, URL: %s", request, currentPlaybackSource) }
+        }
     }
-
 
     private fun ExoPlayerState.toPlaybackStatus(): PlaybackStatus {
         return when (playbackState) {
@@ -149,21 +161,25 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
         fun asUpdatingProgressOnceAndStream(updatePeriod: Long,
                                             timeUnit: TimeUnit) =
                 Observable.timer(updatePeriod, timeUnit,
-                        schedulerProvider.time(PLAYER_PROGRESS_SCHEDULER_TAG))
+                                schedulerProvider.time(PLAYER_PROGRESS_SCHEDULER_TAG))
                         .observeOn(schedulerProvider.ui())
                         .repeat()
                         .startWith(0L)
                         .switchMap { exoPlayer.timePositionMsOnceAndStream }
+                        .doOnEach { System.out.println("Emitting progress update") }
 
         fun ExoPlayerState.isTimelineChanging() =
                 playbackState == Player.STATE_READY && playWhenReady
 
         return exoPlayer.stateOnceAndStream
+                .take(1) // when the state changes, the top-level Observable will re-evaluate
+                .doOnNext { System.out.println("Exoplayer State: $it") }
                 .switchMap { state ->
                     if (state.isTimelineChanging())
                         asUpdatingProgressOnceAndStream(updatePeriod, timeUnit)
-                    else exoPlayer.timePositionMsOnceAndStream
+                     else
+                       exoPlayer.timePositionMsOnceAndStream
                 }
     }
-
 }
+
