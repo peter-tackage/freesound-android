@@ -95,10 +95,9 @@ class ExoPlayerAudioPlayerTest {
     @Test
     fun `togglePlayback plays URL when is Idle`() {
         // given
-        val testScheduler = TestScheduler()
         val playbackSource = PlaybackSource(Id("abc"), "url")
         ArrangeBuilder()
-                .withTimeScheduler(testScheduler)
+                .withTimeScheduler(TestScheduler())
         exoPlayerAudioPlayer.init()
 
         // when
@@ -113,12 +112,11 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `togglePlayback plays URL when is ended`() {
+    fun `togglePlayback plays URL when is Ended`() {
         // given
-        val testScheduler = TestScheduler()
         val playbackSource = PlaybackSource(Id("abc"), "url")
         ArrangeBuilder()
-                .withTimeScheduler(testScheduler)
+                .withTimeScheduler(TestScheduler())
                 .withEndedExoPlayer(playbackSource)
 
         // when
@@ -133,12 +131,11 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `togglePlayback pauses when same URL is playing`() {
+    fun `togglePlayback pauses when same URL is Playing`() {
         // given
-        val testScheduler = TestScheduler()
         val playbackSource = PlaybackSource(Id("abc"), "url")
         ArrangeBuilder()
-                .withTimeScheduler(testScheduler)
+                .withTimeScheduler(TestScheduler())
                 .withPlayingExoPlayer(playbackSource)
 
         // when
@@ -153,17 +150,15 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `togglePlayback resumes URL when same URL is paused`() {
+    fun `togglePlayback resumes URL when same URL is Paused`() {
         // given
         val playbackSource = PlaybackSource(Id("abc"), "url")
-        val scheduler = TestScheduler()
         ArrangeBuilder()
-                .withTimeScheduler(scheduler)
+                .withTimeScheduler(TestScheduler())
                 .withPausedExoPlayer(playbackSource)
 
         // when
         exoPlayerAudioPlayer.togglePlayback(playbackSource)
-        scheduler.triggerActions()
 
         // then
         exoPlayerAudioPlayer.playerStateOnceAndStream.test()
@@ -174,18 +169,16 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `togglePlayback plays new URL when different URL is playing`() {
+    fun `togglePlayback plays new URL when different URL is Playing`() {
         // given
         val playbackSource1 = PlaybackSource(Id("abc"), "url1")
         val playbackSource2 = PlaybackSource(Id("def"), "url2")
-        val scheduler = TestScheduler()
         ArrangeBuilder()
-                .withTimeScheduler(scheduler)
+                .withTimeScheduler(TestScheduler())
                 .withPlayingExoPlayer(playbackSource1)
 
         // when
         exoPlayerAudioPlayer.togglePlayback(playbackSource2)
-        scheduler.triggerActions()
 
         // then
         exoPlayerAudioPlayer.playerStateOnceAndStream.test()
@@ -196,18 +189,16 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `togglePlayback plays URL different URL is paused`() {
+    fun `togglePlayback plays URL different URL is Paused`() {
         // given
         val playbackSource1 = PlaybackSource(Id("abc"), "url1")
         val playbackSource2 = PlaybackSource(Id("def"), "url2")
-        val scheduler = TestScheduler()
         ArrangeBuilder()
-                .withTimeScheduler(scheduler)
+                .withTimeScheduler(TestScheduler())
                 .withPausedExoPlayer(playbackSource1)
 
         // when
         exoPlayerAudioPlayer.togglePlayback(playbackSource2)
-        scheduler.triggerActions()
 
         // then
         exoPlayerAudioPlayer.playerStateOnceAndStream.test()
@@ -218,18 +209,16 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `togglePlayback plays URL different URL is ended`() {
+    fun `togglePlayback plays URL different URL is Ended`() {
         // given
         val playbackSource1 = PlaybackSource(Id("abc"), "url1")
         val playbackSource2 = PlaybackSource(Id("def"), "url2")
-        val scheduler = TestScheduler()
         ArrangeBuilder()
-                .withTimeScheduler(scheduler)
+                .withTimeScheduler(TestScheduler())
                 .withEndedExoPlayer(playbackSource1)
 
         // when
         exoPlayerAudioPlayer.togglePlayback(playbackSource2)
-        scheduler.triggerActions()
 
         // then
         exoPlayerAudioPlayer.playerStateOnceAndStream.test()
@@ -240,11 +229,9 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun `stop stopsExoPlayer`() {
+    fun `stopPlayback stops ExoPlayer`() {
         // given
-        val testScheduler = TestScheduler()
         ArrangeBuilder()
-                .withTimeScheduler(testScheduler)
                 .withPlayingExoPlayer(PlaybackSource(Id("abc"), "url"))
 
         // when
@@ -257,7 +244,7 @@ class ExoPlayerAudioPlayerTest {
     }
 
     @Test
-    fun release_releasesExoPlayer() {
+    fun `release releases ExoPlayer`() {
         // given, when
         exoPlayerAudioPlayer.release()
 
