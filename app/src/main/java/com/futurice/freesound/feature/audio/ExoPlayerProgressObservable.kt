@@ -43,7 +43,6 @@ internal class ExoPlayerProgressObservable(private val exoPlayer: ExoPlayer,
         }
     }
 
-    // FIXME, I'm wondering if all this is necessary.
     private class Listener(exoPlayer: ExoPlayer,
                            val handleTimeChange: () -> Unit)
         : BaseExoPlayerDisposable(exoPlayer) {

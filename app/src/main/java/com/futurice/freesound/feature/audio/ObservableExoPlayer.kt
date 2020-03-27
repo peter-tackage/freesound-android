@@ -36,13 +36,10 @@ internal interface ObservableExoPlayer {
      */
     val timePositionMsOnceAndStream: Observable<Long>
 
+    // Player controls
     fun play(url: String)
-
     fun stop()
-
     fun pause()
-
     fun resume()
-
     fun release()
 }

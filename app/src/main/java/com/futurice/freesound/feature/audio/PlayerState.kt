@@ -24,7 +24,7 @@ enum class PlaybackStatus {
     ERROR
 }
 
-// FIXME Just make Assignment nullable?
+// TODO Could we just make a nullable val "assignment" and null is equivalent to Idle?
 sealed class PlayerState {
     object Idle : PlayerState()
     data class Assigned(
