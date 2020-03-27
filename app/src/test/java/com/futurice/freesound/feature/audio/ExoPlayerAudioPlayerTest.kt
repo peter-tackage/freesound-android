@@ -19,6 +19,7 @@ package com.futurice.freesound.feature.audio
 import com.futurice.freesound.test.rx.TimeSkipScheduler
 import com.futurice.freesound.test.rx.TrampolineSchedulerProvider
 import io.reactivex.Scheduler
+import io.reactivex.observers.TestObserver
 import io.reactivex.schedulers.TestScheduler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -28,35 +29,25 @@ import java.util.concurrent.TimeUnit
 class ExoPlayerAudioPlayerTest {
 
     private lateinit var schedulerProvider: TrampolineSchedulerProvider
-    private lateinit var exoPlayer: FakeObservableExoPlayer
+    private lateinit var fakeExoPlayer: FakeObservableExoPlayer
     private lateinit var exoPlayerAudioPlayer: ExoPlayerAudioPlayer
+
+    private val updatePeriod = 100L
+    private val updateUnits = TimeUnit.MILLISECONDS
+
+    private fun TestScheduler.tick() {
+        advanceTimeBy(updatePeriod, updateUnits)
+        triggerActions()
+    }
 
     @Before
     fun setUp() {
         schedulerProvider = TrampolineSchedulerProvider()
-        exoPlayer = FakeObservableExoPlayer()
-        exoPlayerAudioPlayer = ExoPlayerAudioPlayer(exoPlayer,
-                100,
-                TimeUnit.MILLISECONDS,
+        fakeExoPlayer = FakeObservableExoPlayer()
+        exoPlayerAudioPlayer = ExoPlayerAudioPlayer(fakeExoPlayer,
+                updatePeriod,
+                updateUnits,
                 schedulerProvider)
-    }
-
-    @Test
-    fun `stop stopsExoPlayer`() {
-        // given
-        val testScheduler = TestScheduler()
-        ArrangeBuilder()
-                .withTimeScheduler(testScheduler)
-                .withPlayingExoPlayer(PlaybackSource(Id("abc"), "url"))
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-
-        // when
-        exoPlayerAudioPlayer.stopPlayback()
-        testScheduler.triggerActions()
-
-        // then
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Idle)
     }
 
     @Test
@@ -68,6 +59,37 @@ class ExoPlayerAudioPlayerTest {
         exoPlayerAudioPlayer.playerStateOnceAndStream
                 .test()
                 .assertValue { state -> state is PlayerState.Idle }
+    }
+
+    @Test
+    fun `togglePlayback follows playback sequence from Idle`() {
+        // given
+        val timerScheduler = TestScheduler()
+        val playbackSource1 = PlaybackSource(Id("abc"), "url1")
+        val playbackSource2 = PlaybackSource(Id("def"), "url2")
+        ArrangeBuilder()
+                .withTimeScheduler(timerScheduler)
+        exoPlayerAudioPlayer.init()
+        val states: TestObserver<in PlayerState> = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+
+        // when
+        exoPlayerAudioPlayer.togglePlayback(playbackSource1) // play
+        fakeExoPlayer.setProgress(500)
+        timerScheduler.tick()
+        exoPlayerAudioPlayer.togglePlayback(playbackSource1) // pause
+        exoPlayerAudioPlayer.togglePlayback(playbackSource1) // resume
+        fakeExoPlayer.setProgress(1000)
+        timerScheduler.tick()
+        exoPlayerAudioPlayer.togglePlayback(playbackSource2) // play different
+
+        // then
+        states.assertValues(PlayerState.Idle,
+                PlayerState.Assigned(playbackSource1, PlaybackStatus.PLAYING, 0),
+                PlayerState.Assigned(playbackSource1, PlaybackStatus.PLAYING, 500),
+                PlayerState.Assigned(playbackSource1, PlaybackStatus.PAUSED, 500),
+                PlayerState.Assigned(playbackSource1, PlaybackStatus.PLAYING, 500),
+                PlayerState.Assigned(playbackSource1, PlaybackStatus.PLAYING, 1000),
+                PlayerState.Assigned(playbackSource2, PlaybackStatus.PLAYING, 0))
     }
 
     @Test
@@ -83,10 +105,11 @@ class ExoPlayerAudioPlayerTest {
         exoPlayerAudioPlayer.togglePlayback(playbackSource)
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource,
-                        PlaybackStatus.PLAYING, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource,
+                            PlaybackStatus.PLAYING, 0)
+                }
     }
 
     @Test
@@ -102,10 +125,11 @@ class ExoPlayerAudioPlayerTest {
         exoPlayerAudioPlayer.togglePlayback(playbackSource)
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource,
-                        PlaybackStatus.PLAYING, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource,
+                            PlaybackStatus.PLAYING, 0)
+                }
     }
 
     @Test
@@ -121,10 +145,11 @@ class ExoPlayerAudioPlayerTest {
         exoPlayerAudioPlayer.togglePlayback(playbackSource)
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource,
-                        PlaybackStatus.PAUSED, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource,
+                            PlaybackStatus.PAUSED, 0)
+                }
     }
 
     @Test
@@ -141,10 +166,11 @@ class ExoPlayerAudioPlayerTest {
         scheduler.triggerActions()
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource,
-                        PlaybackStatus.PLAYING, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource,
+                            PlaybackStatus.PLAYING, 0)
+                }
     }
 
     @Test
@@ -162,10 +188,11 @@ class ExoPlayerAudioPlayerTest {
         scheduler.triggerActions()
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource2,
-                        PlaybackStatus.PLAYING, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource2,
+                            PlaybackStatus.PLAYING, 0)
+                }
     }
 
     @Test
@@ -183,10 +210,11 @@ class ExoPlayerAudioPlayerTest {
         scheduler.triggerActions()
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource2,
-                        PlaybackStatus.PLAYING, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource2,
+                            PlaybackStatus.PLAYING, 0)
+                }
     }
 
     @Test
@@ -204,17 +232,37 @@ class ExoPlayerAudioPlayerTest {
         scheduler.triggerActions()
 
         // then
-        val states = exoPlayerAudioPlayer.playerStateOnceAndStream.test()
-        assertThat(states.values().last())
-                .isEqualTo(PlayerState.Assigned(playbackSource2,
-                        PlaybackStatus.PLAYING, 0))
+        exoPlayerAudioPlayer.playerStateOnceAndStream.test()
+                .assertValue {
+                    it == PlayerState.Assigned(playbackSource2,
+                            PlaybackStatus.PLAYING, 0)
+                }
+    }
+
+    @Test
+    fun `stop stopsExoPlayer`() {
+        // given
+        val testScheduler = TestScheduler()
+        ArrangeBuilder()
+                .withTimeScheduler(testScheduler)
+                .withPlayingExoPlayer(PlaybackSource(Id("abc"), "url"))
+
+        // when
+        exoPlayerAudioPlayer.stopPlayback()
+
+        // then
+        exoPlayerAudioPlayer.playerStateOnceAndStream
+                .test()
+                .assertValue { it is PlayerState.Idle }
     }
 
     @Test
     fun release_releasesExoPlayer() {
+        // given, when
         exoPlayerAudioPlayer.release()
 
-        assertThat(exoPlayer.isReleased()).isTrue()
+        // then
+        assertThat(fakeExoPlayer.isReleased).isTrue()
     }
 
     private inner class ArrangeBuilder() {
@@ -239,13 +287,8 @@ class ExoPlayerAudioPlayerTest {
         fun withEndedExoPlayer(playbackSource: PlaybackSource): ArrangeBuilder {
             exoPlayerAudioPlayer.init()
             exoPlayerAudioPlayer.togglePlayback(playbackSource) // make play
-            exoPlayer.end() // make end
+            fakeExoPlayer.end() // make end
             return this;
-        }
-
-        fun withProgress(progress: Long): ArrangeBuilder {
-            exoPlayer.setProgress(progress)
-            return this
         }
 
         fun withTimeScheduler(scheduler: Scheduler): ArrangeBuilder {

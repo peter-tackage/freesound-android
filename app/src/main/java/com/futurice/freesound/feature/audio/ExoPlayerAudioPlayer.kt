@@ -21,6 +21,7 @@ import com.google.android.exoplayer2.Player
 import io.reactivex.Observable
 import io.reactivex.disposables.SerialDisposable
 import io.reactivex.subjects.PublishSubject
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 /**
@@ -53,12 +54,12 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
     private val playbackSourceRequestStream = PublishSubject.create<PlaybackSource>()
     private var currentPlaybackSource: PlaybackSource? = null
 
-    override val playerStateOnceAndStream: Observable<out PlayerState>
+    override val playerStateOnceAndStream: Observable<PlayerState>
         get() = definePlayerStateObservable()
 
     private fun definePlayerStateObservable(): Observable<PlayerState> {
         return exoPlayer.stateOnceAndStream
-                .doOnNext { System.out.println("Top ExoPlayer State: $it") }
+                .doOnNext { Timber.v("ExoPlayer State changed: $it") }
                 .switchMap { exoPlayerState ->
                     if (exoPlayerState.playbackState == Player.STATE_IDLE)
                         Observable.just(PlayerState.Idle)
@@ -66,7 +67,7 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
                         definePlayerTimePositionStream()
                                 .map { positionMs ->
                                     toPlayerState(currentPlaybackSource, exoPlayerState.toPlaybackStatus(), positionMs)
-                                }.doOnEach { System.out.println("Some event: $it")}
+                                }
                 }
     }
 
@@ -81,16 +82,15 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
     override fun init() {
         playbackSourceRequestDisposable
                 .set(playbackSourceRequestStream
-                        .doOnNext { System.out.println("## New Source Request ##") }
+                        .doOnNext { Timber.v("New PlaybackSource Request: $it") }
                         .switchMap { newPlaybackSource ->
                             exoPlayer.stateOnceAndStream
                                     .take(1)
-                                    .doOnNext { System.out.println("# PlayerState: $it") }
                                     .map { exoPlayerState -> toPlaybackRequest(currentPlaybackSource, newPlaybackSource, exoPlayerState) }
                                     .map { request -> Pair(request, newPlaybackSource) }
                         }
                         .subscribe({ pair -> handlePlaybackRequest(pair.first, pair.second) },
-                                { e -> System.err.println("Fatal error toggling playback $e") }))
+                                { e -> Timber.e(e, "Fatal error when changing playback source") }))
     }
 
     override fun togglePlayback(playbackSource: PlaybackSource) {
@@ -128,7 +128,8 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
 
     private fun handlePlaybackRequest(request: PlaybackRequest,
                                       playbackSource: PlaybackSource) {
-        System.out.println("## Applying change: $request ##")
+        Timber.v("Applying playback change: $request for source: $playbackSource")
+
         // Apply the change to the source
         currentPlaybackSource = playbackSource
 
@@ -166,19 +167,17 @@ internal class ExoPlayerAudioPlayer(private val exoPlayer: ObservableExoPlayer,
                         .repeat()
                         .startWith(0L)
                         .switchMap { exoPlayer.timePositionMsOnceAndStream }
-                        .doOnEach { System.out.println("Emitting progress update") }
 
         fun ExoPlayerState.isTimelineChanging() =
                 playbackState == Player.STATE_READY && playWhenReady
 
         return exoPlayer.stateOnceAndStream
                 .take(1) // when the state changes, the top-level Observable will re-evaluate
-                .doOnNext { System.out.println("Exoplayer State: $it") }
                 .switchMap { state ->
                     if (state.isTimelineChanging())
                         asUpdatingProgressOnceAndStream(updatePeriod, timeUnit)
-                     else
-                       exoPlayer.timePositionMsOnceAndStream
+                    else
+                        exoPlayer.timePositionMsOnceAndStream
                 }
     }
 }

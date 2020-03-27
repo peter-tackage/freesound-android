@@ -5,14 +5,14 @@ import io.reactivex.subjects.BehaviorSubject
 
 class FakeObservableExoPlayer(override val stateOnceAndStream: BehaviorSubject<ExoPlayerState>
                               = BehaviorSubject.createDefault(ExoPlayerState(true, Player.STATE_IDLE)),
-                              override val timePositionMsOnceAndStream: BehaviorSubject<Long>
-                              = BehaviorSubject.createDefault(0)
-) : ObservableExoPlayer {
+                              override var timePositionMsOnceAndStream: BehaviorSubject<Long>
+                              = BehaviorSubject.createDefault(0)) : ObservableExoPlayer {
 
-    private var isReleased: Boolean = false;
+    var isReleased: Boolean = false; private set
 
     override fun play(url: String) {
         checkIsNotReleased()
+        timePositionMsOnceAndStream = BehaviorSubject.createDefault(0)
         stateOnceAndStream.onNext(ExoPlayerState(true, Player.STATE_READY))
     }
 
@@ -51,8 +51,10 @@ class FakeObservableExoPlayer(override val stateOnceAndStream: BehaviorSubject<E
 
     fun setProgress(progress: Long) {
         checkIsNotReleased()
-        timePositionMsOnceAndStream.onNext(progress)
+        // Because progress is derived through polling, we don't just emit another values.
+        // Instead we update the latent value and then assume that the AudioPlayer will resubscribe
+        // to get the new value.
+        timePositionMsOnceAndStream = BehaviorSubject.createDefault(progress)
     }
 
-    fun isReleased() = isReleased;
 }
