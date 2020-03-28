@@ -39,6 +39,7 @@ internal class DefaultSearchDataModel(private val freeSoundApiService: FreeSound
 
     override fun querySearch(query: String,
                              preliminaryTask: Completable): Completable {
+        // FIXME Not sure about this doFinally or why it is commented out.
         return preliminaryTask.doOnSubscribe { reportInProgress() } //   .doFinally(this::reportNotInProgress)
                 .andThen(freeSoundApiService.search(Preconditions.get(query))
                         .map { it.results }
@@ -48,22 +49,19 @@ internal class DefaultSearchDataModel(private val freeSoundApiService: FreeSound
                         .onErrorComplete())
     }
 
-    override fun getSearchStateOnceAndStream(): Observable<SearchState> {
-        return Observable.combineLatest(resultsOnceAndStream,
-                        errorOnceAndStream,
-                        inProgressOnceAndStream,
-                        Function3 { results: Option<List<Sound>>,
-                                    error: Option<Throwable>,
-                                    inProgress: Boolean ->
-                            combine(results, error, inProgress)
-                        })
-                .observeOn(schedulerProvider.computation())
-                .distinctUntilChanged()
-    }
+    override fun getSearchStateOnceAndStream(): Observable<SearchState> =
+            Observable.combineLatest(resultsOnceAndStream,
+                    errorOnceAndStream,
+                    inProgressOnceAndStream,
+                    Function3 { results: Option<List<Sound>>,
+                                error: Option<Throwable>,
+                                inProgress: Boolean ->
+                        combine(results, error, inProgress)
+                    })
+                    .observeOn(schedulerProvider.computation())
+                    .distinctUntilChanged()
 
-    override fun clear(): Completable {
-        return Completable.fromAction { reportClear() }
-    }
+    override fun clear(): Completable = Completable.fromAction { reportClear() }
 
     private fun reportClear() {
         resultsOnceAndStream.onNext(Option.none())
@@ -71,9 +69,8 @@ internal class DefaultSearchDataModel(private val freeSoundApiService: FreeSound
         inProgressOnceAndStream.onNext(false)
     }
 
-    private fun reportInProgress() {
-        inProgressOnceAndStream.onNext(true)
-    }
+    private fun reportInProgress() =
+            inProgressOnceAndStream.onNext(true)
 
     private fun reportResults(results: List<Sound>) {
         resultsOnceAndStream.onNext(Option.ofObj(results))
