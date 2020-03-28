@@ -151,9 +151,9 @@ class DefaultSearchDataModelTest {
 
         // when, then
         defaultSearchDataModel
-                .getSearchStateOnceAndStream().test()
+                .getSearchStateOnceAndStream()
+                .test()
                 .assertNotTerminated()
-                .assertValueCount(1)
                 .assertValue(SearchState.Error(searchError))
     }
 
@@ -212,9 +212,8 @@ class DefaultSearchDataModelTest {
         // then
         defaultSearchDataModel.searchStateOnceAndStream
                 .test()
-                .assertValueCount(1)
-                .assertValue(SearchState.Cleared)
                 .assertNotTerminated()
+                .assertValue(SearchState.Cleared)
     }
 
     @Test
