@@ -32,11 +32,11 @@ internal class SearchFragmentViewModel(private val searchDataModel: SearchDataMo
                                        private val schedulerProvider: SchedulerProvider) : SimpleViewModel() {
 
     // When there are none results (result == null), this won't do anything.
-    val soundsOnceAndStream
+    val soundsOnceAndStream: Observable<Option<List<DisplayableItem<Sound>>>>
         get() = searchDataModel.searchStateOnceAndStream
                 .observeOn(schedulerProvider.ui())
                 .map { searchState: SearchState -> extractResults(searchState) }
-                .map { it.map { sounds -> wrapInDisplayableItem(sounds) } }
+                .map { it.map { sounds -> sounds.wrapInDisplayableItem() } }
                 .doOnNext { audioPlayer.stopPlayback() }
 
     val searchStateOnceAndStream: Observable<SearchState>
@@ -58,11 +58,6 @@ internal class SearchFragmentViewModel(private val searchDataModel: SearchDataMo
         return Option.none()
     }
 
-    private fun wrapInDisplayableItem(sounds: List<Sound>): List<DisplayableItem<Sound>> {
-        return Observable.fromIterable(sounds)
-                .map { DisplayableItem(it, SOUND) }
-                .toList()
-                .blockingGet()
-    }
+    private fun List<Sound>.wrapInDisplayableItem() = map { DisplayableItem(it, SOUND) }
 
 }
