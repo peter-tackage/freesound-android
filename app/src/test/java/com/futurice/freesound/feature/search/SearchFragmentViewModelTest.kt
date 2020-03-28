@@ -20,10 +20,10 @@ import com.futurice.freesound.feature.common.DisplayableItem
 import com.futurice.freesound.feature.common.Navigator
 import com.futurice.freesound.feature.search.SearchResultListItems.SOUND
 import com.futurice.freesound.network.api.model.Sound
-import com.futurice.freesound.test.assertion.rx.RxJava2OptionAssertions
+import com.futurice.freesound.test.assertion.rx.RxJava2OptionAssertions.hasOptionValue
+import com.futurice.freesound.test.assertion.rx.RxJava2OptionAssertions.isNone
 import com.futurice.freesound.test.data.TestData.Companion.sounds
 import com.futurice.freesound.test.rx.TrampolineSchedulerProvider
-import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import org.junit.Before
 import org.junit.Test
@@ -35,8 +35,10 @@ import polanski.option.Option
 class SearchFragmentViewModelTest {
     @Mock
     private lateinit var searchDataModel: SearchDataModel
+
     @Mock
     private lateinit var navigator: Navigator
+
     @Mock
     private lateinit var audioPlayer: AudioPlayer
 
@@ -59,7 +61,7 @@ class SearchFragmentViewModelTest {
         // when, then
         viewModel.soundsOnceAndStream
                 .test()
-                .assertValue(RxJava2OptionAssertions.isNone())
+                .assertValue(isNone())
     }
 
     @Test
@@ -71,7 +73,7 @@ class SearchFragmentViewModelTest {
         // when, then
         viewModel.soundsOnceAndStream
                 .test()
-                .assertValue(RxJava2OptionAssertions.hasOptionValue(sounds.expectedDisplayableItems()))
+                .assertValue(hasOptionValue(sounds.toExpectedDisplayableItems()))
     }
 
     @Test
@@ -116,7 +118,7 @@ class SearchFragmentViewModelTest {
         }
 
         fun enqueueSearchResults(sounds: Option<List<Sound>>): Arrangement {
-            sounds.ifSome { soundList: List<Sound> -> mockedSearchResultsStream.onNext(SearchState.Success(soundList)) }
+            sounds.ifSome { mockedSearchResultsStream.onNext(SearchState.Success(it)) }
                     .ifNone { mockedSearchResultsStream.onNext(SearchState.Cleared) }
             return this
         }
@@ -126,10 +128,6 @@ class SearchFragmentViewModelTest {
         }
     }
 
-    private fun List<Sound>.expectedDisplayableItems(): List<DisplayableItem<Sound>> {
-        return Observable.fromIterable(this)
-                .map { DisplayableItem(it, SOUND) }
-                .toList()
-                .blockingGet()
-    }
+    private fun List<Sound>.toExpectedDisplayableItems(): List<DisplayableItem<Sound>> = map { DisplayableItem(it, SOUND) }
+
 }
