@@ -22,6 +22,7 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.futurice.freesound.R
 import com.futurice.freesound.arch.mvvm.DataBinder
 import com.futurice.freesound.arch.mvvm.ViewModel
@@ -29,11 +30,12 @@ import com.futurice.freesound.arch.mvvm.view.MvvmBaseFragment
 import com.futurice.freesound.common.rx.plusAssign
 import com.futurice.freesound.feature.common.DisplayableItem
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
-import com.futurice.freesound.feature.common.ui.adapter.RecyclerViewAdapter
+import com.futurice.freesound.feature.common.ui.adapter.MultiItemListAdapter
 import com.futurice.freesound.inject.fragment.BaseFragmentModule
 import com.futurice.freesound.network.api.model.Sound
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.fragment_search.*
+import polanski.option.Option
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -43,7 +45,7 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
     internal lateinit var searchFragmentViewModel: SearchFragmentViewModel
 
     @Inject
-    internal lateinit var searchResultAdapter: RecyclerViewAdapter<Sound>
+    internal lateinit var searchResultAdapter: MultiItemListAdapter<Sound>
 
     @Inject
     internal lateinit var schedulerProvider: SchedulerProvider
@@ -54,7 +56,7 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
             disposables += searchFragmentViewModel.soundsOnceAndStream
                     .subscribeOn(schedulerProvider.computation())
                     .observeOn(schedulerProvider.ui())
-                    .subscribe({ handleResults(it.orDefault { null }) })
+                    .subscribe({ handleResults(it) })
                     { Timber.e(it, "Error setting Sound items") }
             disposables += searchFragmentViewModel.searchStateOnceAndStream
                     .subscribeOn(schedulerProvider.computation())
@@ -75,9 +77,8 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        recyclerView_searchResults.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(activity).apply {
-            recycleChildrenOnDetach = true
-        }
+        recyclerView_searchResults.layoutManager =
+                LinearLayoutManager(activity).apply { recycleChildrenOnDetach = true }
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -85,9 +86,8 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
         recyclerView_searchResults.adapter = searchResultAdapter
     }
 
-    override fun inject() {
-        component().inject(this)
-    }
+    override fun inject() =
+            component().inject(this)
 
     override fun createComponent(): SearchFragmentComponent =
             (activity as SearchActivity).component()
@@ -97,8 +97,9 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
 
     override fun dataBinder(): DataBinder = dataBinder
 
-    private fun handleResults(sounds: List<DisplayableItem<Sound>>?) {
-        if (sounds != null) showResults(sounds) else showNothing()
+    private fun handleResults(results: Option<List<DisplayableItem<Sound>>>) {
+        results.ifSome { showResults(it) }
+                .ifNone { showNothing() }
     }
 
     private fun showNothing() {
@@ -113,7 +114,7 @@ class SearchFragment : MvvmBaseFragment<SearchFragmentComponent>() {
         } else {
             textView_searchNoResults.visibility = GONE
             recyclerView_searchResults.visibility = VISIBLE
-            searchResultAdapter.update(sounds)
+            searchResultAdapter.submitList(sounds)
         }
     }
 
