@@ -20,7 +20,7 @@ import io.reactivex.Observable
 import io.reactivex.Single
 
 fun <T> Single<T>.asOperation(): Observable<Operation> {
-    return toCompletable()
+    return ignoreElement()
             .toObservable<Operation>()
             .startWith(Operation.InProgress)
             .concatWith(Observable.just(Operation.Complete))

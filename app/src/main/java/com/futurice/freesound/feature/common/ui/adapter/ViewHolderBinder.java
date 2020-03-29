@@ -16,14 +16,15 @@
 
 package com.futurice.freesound.feature.common.ui.adapter;
 
-import com.futurice.freesound.feature.common.DisplayableItem;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
+
+import com.futurice.freesound.feature.common.DisplayableItem;
 
 /**
  * Populates a {@link ViewHolder} with the model details.
  */
+@FunctionalInterface
 public interface ViewHolderBinder<T> {
 
     /**

@@ -18,11 +18,14 @@ package com.futurice.freesound.feature.search;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+
 import com.futurice.freesound.feature.audio.AudioPlayer;
+import com.futurice.freesound.feature.common.DisplayableItem;
 import com.futurice.freesound.feature.common.Navigator;
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider;
-import com.futurice.freesound.feature.common.ui.adapter.ItemComparator;
-import com.futurice.freesound.feature.common.ui.adapter.RecyclerViewAdapter;
+import com.futurice.freesound.feature.common.ui.adapter.MultiItemListAdapter;
 import com.futurice.freesound.feature.common.ui.adapter.ViewHolderBinder;
 import com.futurice.freesound.feature.common.ui.adapter.ViewHolderFactory;
 import com.futurice.freesound.inject.activity.ForActivity;
@@ -39,7 +42,7 @@ import dagger.Provides;
 import dagger.multibindings.IntKey;
 import dagger.multibindings.IntoMap;
 
-import static com.futurice.freesound.feature.search.SearchConstants.SearchResultListItems.SOUND;
+import static com.futurice.freesound.feature.search.SearchResultListItems.SOUND;
 
 @Module(includes = BaseFragmentModule.class)
 public class SearchFragmentModule {
@@ -55,17 +58,28 @@ public class SearchFragmentModule {
 
     @Provides
     @FragmentScope
-    RecyclerViewAdapter<Sound> provideRecyclerAdapter(ItemComparator itemComparator,
-                                                      Map<Integer, ViewHolderFactory> factoryMap,
-                                                      Map<Integer, ViewHolderBinder<Sound>> binderMap,
-                                                      SchedulerProvider schedulerProvider) {
-        return new RecyclerViewAdapter<>(itemComparator, factoryMap, binderMap,
-                schedulerProvider);
+    MultiItemListAdapter<Sound> provideRecyclerAdapter(DiffUtil.ItemCallback<DisplayableItem<Sound>> diffItemCallback,
+                                                       Map<Integer, ViewHolderFactory> factoryMap,
+                                                       Map<Integer, ViewHolderBinder<Sound>> binderMap) {
+        return new MultiItemListAdapter<>(diffItemCallback, factoryMap, binderMap);
     }
 
     @Provides
-    ItemComparator provideComparator() {
-        return new SearchResultItemComparator();
+    DiffUtil.ItemCallback<DisplayableItem<Sound>> provideDiffItemCallback() {
+        return new DiffUtil.ItemCallback<DisplayableItem<Sound>>() {
+            @Override
+            public boolean areItemsTheSame(@NonNull DisplayableItem<Sound> oldItem,
+                                           @NonNull DisplayableItem<Sound> newItem) {
+                return oldItem.equals(newItem);
+            }
+
+            @Override
+            public boolean areContentsTheSame(@NonNull DisplayableItem<Sound> oldItem,
+                                              @NonNull DisplayableItem<Sound> newItem) {
+                // No local state.
+                return true;
+            }
+        };
     }
 
     @IntoMap
