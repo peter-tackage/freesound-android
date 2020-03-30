@@ -33,11 +33,11 @@ public class SearchActivityModule {
 
     @Provides
     @ActivityScope
-    static SearchActivityViewModel provideSearchViewModel(SearchDataModel searchDataModel,
+    static SearchActivityViewModel provideSearchViewModel(SearchRepository searchRepository,
                                                           AudioPlayer audioPlayer,
                                                           Analytics analytics,
                                                           SchedulerProvider schedulerProvider) {
-        return new SearchActivityViewModel(searchDataModel,
+        return new SearchActivityViewModel(searchRepository,
                                            audioPlayer,
                                            analytics,
                                            schedulerProvider);
@@ -45,9 +45,9 @@ public class SearchActivityModule {
 
     @Provides
     @ActivityScope
-    static SearchDataModel provideSearchDataModel(FreeSoundApiClient freeSoundApiClient,
-                                                  SchedulerProvider schedulerProvider) {
-        return new DefaultSearchDataModel(freeSoundApiClient, schedulerProvider);
+    static SearchRepository provideSearchRepository(FreeSoundApiClient freeSoundApiClient,
+                                                   SchedulerProvider schedulerProvider) {
+        return new DefaultSearchRepository(freeSoundApiClient, schedulerProvider);
     }
 
     @Provides

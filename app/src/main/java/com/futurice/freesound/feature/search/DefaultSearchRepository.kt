@@ -26,8 +26,8 @@ import io.reactivex.subjects.Subject
 import polanski.option.Option
 import polanski.option.OptionUnsafe
 
-internal class DefaultSearchDataModel(private val freeSoundApiClient: FreeSoundApiClient,
-                                      private val schedulerProvider: SchedulerProvider) : SearchDataModel {
+internal class DefaultSearchRepository(private val freeSoundApiClient: FreeSoundApiClient,
+                                       private val schedulerProvider: SchedulerProvider) : SearchRepository {
 
     private val inProgressOnceAndStream: Subject<Boolean> =
             BehaviorSubject.createDefault(false)

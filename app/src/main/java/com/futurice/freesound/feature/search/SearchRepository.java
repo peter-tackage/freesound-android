@@ -21,7 +21,7 @@ import androidx.annotation.NonNull;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 
-public interface SearchDataModel {
+public interface SearchRepository {
 
     @NonNull
     Completable querySearch(@NonNull String query, @NonNull final Completable preliminaryTask);

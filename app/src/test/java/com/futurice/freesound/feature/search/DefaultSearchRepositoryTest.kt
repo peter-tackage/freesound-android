@@ -30,16 +30,16 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
-class DefaultSearchDataModelTest {
+class DefaultSearchRepositoryTest {
     @Mock
     private lateinit var freeSoundApiClient: FreeSoundApiClient
 
-    private lateinit var defaultSearchDataModel: DefaultSearchDataModel
+    private lateinit var defaultSearchRepository: DefaultSearchRepository
 
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        defaultSearchDataModel = DefaultSearchDataModel(freeSoundApiClient,
+        defaultSearchRepository = DefaultSearchRepository(freeSoundApiClient,
                 TrampolineSchedulerProvider())
     }
 
@@ -49,7 +49,7 @@ class DefaultSearchDataModelTest {
         Arrangement().withDummySearchResult()
 
         // when
-        defaultSearchDataModel.querySearch(QUERY, Completable.complete()).test()
+        defaultSearchRepository.querySearch(QUERY, Completable.complete()).test()
 
         // then
         verify(freeSoundApiClient).search(eq(QUERY))
@@ -61,7 +61,7 @@ class DefaultSearchDataModelTest {
         Arrangement().withSearchResultsFor(QUERY, dummyResults())
 
         // when, then
-        defaultSearchDataModel.querySearch(QUERY, Completable.complete())
+        defaultSearchRepository.querySearch(QUERY, Completable.complete())
                 .test()
                 .assertComplete()
     }
@@ -72,7 +72,7 @@ class DefaultSearchDataModelTest {
         Arrangement().withSearchResultError(Exception())
 
         // when, then
-        defaultSearchDataModel.querySearch("should-error", Completable.complete())
+        defaultSearchRepository.querySearch("should-error", Completable.complete())
                 .test()
                 .assertComplete()
     }
@@ -80,7 +80,7 @@ class DefaultSearchDataModelTest {
     @Test
     fun `searchStateOnceAndStream isInitiallyClear`() {
         // given, when, then
-        defaultSearchDataModel.searchStateOnceAndStream
+        defaultSearchRepository.searchStateOnceAndStream
                 .test()
                 .assertNotTerminated()
                 .assertValue(SearchState.Cleared)
@@ -90,12 +90,12 @@ class DefaultSearchDataModelTest {
     fun `querySearch triggersSearchStateProgress`() {
         // given
         Arrangement().withDummySearchResult()
-        val ts = defaultSearchDataModel.searchStateOnceAndStream
+        val ts = defaultSearchRepository.searchStateOnceAndStream
                 .skip(1)
                 .test()
 
         // when
-        defaultSearchDataModel.querySearch(QUERY, Completable.complete()).subscribe()
+        defaultSearchRepository.querySearch(QUERY, Completable.complete()).subscribe()
 
         // then
         ts.assertValueCount(3)
@@ -110,10 +110,10 @@ class DefaultSearchDataModelTest {
         Arrangement().withSearchResultsFor(QUERY, expected)
 
         // when
-        defaultSearchDataModel.querySearch(QUERY, Completable.complete()).subscribe()
+        defaultSearchRepository.querySearch(QUERY, Completable.complete()).subscribe()
 
         // then
-        defaultSearchDataModel.searchStateOnceAndStream
+        defaultSearchRepository.searchStateOnceAndStream
                 .test()
                 .assertNoErrors()
                 .assertValue(SearchState.Success(expected.results))
@@ -123,11 +123,11 @@ class DefaultSearchDataModelTest {
     fun `searchStateOnceAndStream doesNotCompleteOrError whenQuerySearchErrors`() {
         // given
         Arrangement().withSearchResultError(Exception())
-        val ts = defaultSearchDataModel.searchStateOnceAndStream
+        val ts = defaultSearchRepository.searchStateOnceAndStream
                 .test()
 
         // when
-        defaultSearchDataModel.querySearch("should-error", Completable.complete()).subscribe()
+        defaultSearchRepository.querySearch("should-error", Completable.complete()).subscribe()
 
         // then
         ts.assertNotTerminated()
@@ -136,7 +136,7 @@ class DefaultSearchDataModelTest {
     @Test
     fun `searchStateOnceAndStream hasNoTerminalEvent`() {
         // given, when, then
-        defaultSearchDataModel.searchStateOnceAndStream
+        defaultSearchRepository.searchStateOnceAndStream
                 .test()
                 .assertNotTerminated()
     }
@@ -150,7 +150,7 @@ class DefaultSearchDataModelTest {
                 .querySearch()
 
         // when, then
-        defaultSearchDataModel
+        defaultSearchRepository
                 .getSearchStateOnceAndStream()
                 .test()
                 .assertNotTerminated()
@@ -165,7 +165,7 @@ class DefaultSearchDataModelTest {
                 .querySearch()
 
         // when, then
-        defaultSearchDataModel.searchStateOnceAndStream
+        defaultSearchRepository.searchStateOnceAndStream
                 .test()
                 .assertNotTerminated()
     }
@@ -174,11 +174,11 @@ class DefaultSearchDataModelTest {
     fun `searchStateOnceAndStream doesNotTerminate whenQuerySearchErrors`() {
         // given
         Arrangement().withSearchResultError()
-        val ts = defaultSearchDataModel.searchStateOnceAndStream
+        val ts = defaultSearchRepository.searchStateOnceAndStream
                 .test()
 
         // when
-        defaultSearchDataModel.querySearch(QUERY, Completable.complete()).subscribe()
+        defaultSearchRepository.querySearch(QUERY, Completable.complete()).subscribe()
 
         // then
         ts.assertNotTerminated()
@@ -188,12 +188,12 @@ class DefaultSearchDataModelTest {
     fun `searchStateOnceAndStream doesNotEmitDuplicateEvents`() {
         // given
         Arrangement().withDummySearchResult()
-        val ts = defaultSearchDataModel.searchStateOnceAndStream
+        val ts = defaultSearchRepository.searchStateOnceAndStream
                 .skip(1) // ignore initial value
                 .test()
         // when
-        defaultSearchDataModel.querySearch(QUERY, Completable.never()).subscribe()
-        defaultSearchDataModel.querySearch(QUERY, Completable.never()).subscribe()
+        defaultSearchRepository.querySearch(QUERY, Completable.never()).subscribe()
+        defaultSearchRepository.querySearch(QUERY, Completable.never()).subscribe()
 
         // then
         ts.assertValueCount(1)
@@ -207,10 +207,10 @@ class DefaultSearchDataModelTest {
                 .querySearch()
 
         // when
-        defaultSearchDataModel.clear().subscribe()
+        defaultSearchRepository.clear().subscribe()
 
         // then
-        defaultSearchDataModel.searchStateOnceAndStream
+        defaultSearchRepository.searchStateOnceAndStream
                 .test()
                 .assertNotTerminated()
                 .assertValue(SearchState.Cleared)
@@ -219,7 +219,7 @@ class DefaultSearchDataModelTest {
     @Test
     fun `clear completes`() {
         // given, when, then
-        defaultSearchDataModel.clear()
+        defaultSearchRepository.clear()
                 .test()
                 .assertComplete()
     }
@@ -247,7 +247,7 @@ class DefaultSearchDataModelTest {
 
     private inner class Act {
         fun querySearch(query: String = QUERY) {
-            defaultSearchDataModel.querySearch(query, Completable.complete()).subscribe()
+            defaultSearchRepository.querySearch(query, Completable.complete()).subscribe()
         }
     }
 
