@@ -16,7 +16,6 @@
 package com.futurice.freesound.feature.search
 
 import com.futurice.freesound.arch.mvvm.SimpleViewModel
-import com.futurice.freesound.common.utils.Preconditions
 import com.futurice.freesound.feature.audio.AudioPlayer
 import com.futurice.freesound.feature.common.DisplayableItem
 import com.futurice.freesound.feature.common.Navigator
@@ -45,7 +44,7 @@ internal class SearchFragmentViewModel(private val searchDataModel: SearchDataMo
     fun stopPlayback() = audioPlayer.stopPlayback()
 
     fun openSoundDetails(sound: Sound) {
-        navigator.openSoundDetails(Preconditions.get(sound))
+        navigator.openSoundDetails(sound)
     }
 
     private fun extractResults(searchState: SearchState): Option<List<Sound>> {
