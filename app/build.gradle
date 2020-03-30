@@ -121,7 +121,7 @@ ext {
             moshi                   : '1.9.2',
             moshiConverter          : '2.7.2',
             jsr250                  : '1.0',
-            jonty                   : '0.8',
+            jonty                   : '0.9',
             options                 : '1.2.4',
             exoplayer               : '2.9.5',
             butterknife             : '10.2.1',

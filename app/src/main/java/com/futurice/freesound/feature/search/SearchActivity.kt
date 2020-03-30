@@ -29,7 +29,6 @@ import com.futurice.freesound.arch.mvvm.SimpleDataBinder
 import com.futurice.freesound.arch.mvvm.ViewModel
 import com.futurice.freesound.arch.mvvm.view.MvvmBaseActivity
 import com.futurice.freesound.common.rx.plusAssign
-import com.futurice.freesound.common.utils.Preconditions.get
 import com.futurice.freesound.common.utils.ifNull
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
 import com.futurice.freesound.inject.activity.BaseActivityModule
@@ -80,7 +79,7 @@ class SearchActivity : MvvmBaseActivity<SearchActivityComponent>() {
                 override fun onQueryTextSubmit(query: String): Boolean = false
 
                 override fun onQueryTextChange(newText: String): Boolean {
-                    emitter.onNext(get(newText))
+                    emitter.onNext(newText)
                     return true
                 }
             })
