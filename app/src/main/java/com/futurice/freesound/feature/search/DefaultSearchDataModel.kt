@@ -16,7 +16,7 @@
 package com.futurice.freesound.feature.search
 
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider
-import com.futurice.freesound.network.api.FreeSoundApiService
+import com.futurice.freesound.network.api.FreeSoundApiClient
 import com.futurice.freesound.network.api.model.Sound
 import io.reactivex.Completable
 import io.reactivex.Observable
@@ -26,7 +26,7 @@ import io.reactivex.subjects.Subject
 import polanski.option.Option
 import polanski.option.OptionUnsafe
 
-internal class DefaultSearchDataModel(private val freeSoundApiService: FreeSoundApiService,
+internal class DefaultSearchDataModel(private val freeSoundApiClient: FreeSoundApiClient,
                                       private val schedulerProvider: SchedulerProvider) : SearchDataModel {
 
     private val inProgressOnceAndStream: Subject<Boolean> =
@@ -40,7 +40,7 @@ internal class DefaultSearchDataModel(private val freeSoundApiService: FreeSound
                              preliminaryTask: Completable): Completable {
         // FIXME Not sure about this doFinally or why it is commented out.
         return preliminaryTask.doOnSubscribe { reportInProgress() } //   .doFinally(this::reportNotInProgress)
-                .andThen(freeSoundApiService.search(query)
+                .andThen(freeSoundApiClient.search(query)
                         .map { it.results }
                         .doOnSuccess { reportResults(it) }
                         .doOnError { reportError(it) }

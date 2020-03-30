@@ -15,7 +15,7 @@
  */
 package com.futurice.freesound.feature.search
 
-import com.futurice.freesound.network.api.FreeSoundApiService
+import com.futurice.freesound.network.api.FreeSoundApiClient
 import com.futurice.freesound.network.api.model.SoundSearchResult
 import com.futurice.freesound.test.data.TestData.Companion.searchResult
 import com.futurice.freesound.test.rx.TrampolineSchedulerProvider
@@ -32,14 +32,14 @@ import org.mockito.MockitoAnnotations
 
 class DefaultSearchDataModelTest {
     @Mock
-    private lateinit var freeSoundApiService: FreeSoundApiService
+    private lateinit var freeSoundApiClient: FreeSoundApiClient
 
     private lateinit var defaultSearchDataModel: DefaultSearchDataModel
 
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        defaultSearchDataModel = DefaultSearchDataModel(freeSoundApiService,
+        defaultSearchDataModel = DefaultSearchDataModel(freeSoundApiClient,
                 TrampolineSchedulerProvider())
     }
 
@@ -52,7 +52,7 @@ class DefaultSearchDataModelTest {
         defaultSearchDataModel.querySearch(QUERY, Completable.complete()).test()
 
         // then
-        verify(freeSoundApiService).search(eq(QUERY))
+        verify(freeSoundApiClient).search(eq(QUERY))
     }
 
     @Test
@@ -226,17 +226,17 @@ class DefaultSearchDataModelTest {
 
     private inner class Arrangement {
         fun withDummySearchResult(): Arrangement {
-            `when`(freeSoundApiService.search(anyString())).thenReturn(Single.just(dummyResults()))
+            `when`(freeSoundApiClient.search(anyString())).thenReturn(Single.just(dummyResults()))
             return this
         }
 
         fun withSearchResultsFor(query: String, results: SoundSearchResult): Arrangement {
-            `when`(freeSoundApiService.search(eq(query))).thenReturn(Single.just(results))
+            `when`(freeSoundApiClient.search(eq(query))).thenReturn(Single.just(results))
             return this
         }
 
         fun withSearchResultError(exception: Exception = Exception()): Arrangement {
-            `when`(freeSoundApiService.search(any())).thenReturn(Single.error(exception))
+            `when`(freeSoundApiClient.search(any())).thenReturn(Single.error(exception))
             return this
         }
 

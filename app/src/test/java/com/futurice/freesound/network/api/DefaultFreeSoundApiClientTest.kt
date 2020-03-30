@@ -30,7 +30,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
-class DefaultFreeSoundApiServiceTest {
+class DefaultFreeSoundApiClientTest {
 
     private val TEST_CLIENT_ID = "clientId"
     private val TEST_CLIENT_SECRET = "clientSecret"
@@ -42,13 +42,13 @@ class DefaultFreeSoundApiServiceTest {
     @Mock
     private lateinit var freeSoundApi: FreeSoundApi
 
-    private lateinit var defaultFreeSoundApiService: DefaultFreeSoundApiService
+    private lateinit var defaultFreeSoundApiService: DefaultFreeSoundApiClient
 
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
 
-        defaultFreeSoundApiService = DefaultFreeSoundApiService(freeSoundApi,
+        defaultFreeSoundApiService = DefaultFreeSoundApiClient(freeSoundApi,
                 TEST_CLIENT_ID,
                 TEST_CLIENT_SECRET)
     }

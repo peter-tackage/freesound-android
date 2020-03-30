@@ -27,7 +27,7 @@ import io.reactivex.Single;
 /**
  * The application access interface for interactions with the Freesound API.
  */
-public interface FreeSoundApiService {
+public interface FreeSoundApiClient {
 
     @NonNull
     Single<User> getUser(@NonNull final String user);
