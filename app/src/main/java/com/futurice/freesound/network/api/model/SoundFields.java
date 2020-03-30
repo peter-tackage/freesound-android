@@ -17,7 +17,7 @@
 package com.futurice.freesound.network.api.model;
 
 public enum SoundFields {
-    BASE(Sound_JontyFielder.INSTANCE.getFields());
+    BASE(Sound_JontyFielder.FIELDS);
 
     private final Iterable<String> fields;
 
