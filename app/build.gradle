@@ -216,6 +216,7 @@ dependencies {
     testImplementation 'androidx.arch.core:core-testing:2.1.0'
     testImplementation "junit:junit:$dependencyVersions.junit"
     testImplementation "org.mockito:mockito-core:$dependencyVersions.mockito"
+    testImplementation "net.bytebuddy:byte-buddy:1.10.9" // workaround for failing to mock inline mocks
     testImplementation "org.assertj:assertj-core:$dependencyVersions.assertJ"
     testImplementation "com.squareup.okhttp3:mockwebserver:$dependencyVersions.okHttp"
 
