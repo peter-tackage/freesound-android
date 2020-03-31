@@ -20,4 +20,4 @@ package com.futurice.freesound.feature.common
  * Wraps a model. Convenient for complex presentation layers such as
  * [android.support.v7.widget.RecyclerView] where different types of model are handled.
  */
-data class DisplayableItem<T>(val model: T, val type: Int)
+data class DisplayableItem<out T>(val model: T, val type: Int)

@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.futurice.freesound.feature.common.ui.adapter
 
-package com.futurice.freesound.feature.common.ui.adapter;
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView.ViewHolder;
-
-import com.futurice.freesound.feature.common.DisplayableItem;
+import androidx.recyclerview.widget.RecyclerView
+import com.futurice.freesound.feature.common.DisplayableItem
 
 /**
- * Populates a {@link ViewHolder} with the model details.
+ * Populates a [ViewHolder] with the model details.
  */
 @FunctionalInterface
-public interface ViewHolderBinder<T> {
-
+interface ViewHolderBinder<in T> {
     /**
-     * Populates the passed {@link ViewHolder} with the details of the passed
-     * {@link DisplayableItem}.
+     * Populates the passed [ViewHolder] with the details of the passed
+     * [DisplayableItem].
      */
-    void bind(@NonNull final ViewHolder viewHolder, @NonNull final DisplayableItem<T> item);
+    fun bind(viewHolder: RecyclerView.ViewHolder, item: DisplayableItem<T>)
 }

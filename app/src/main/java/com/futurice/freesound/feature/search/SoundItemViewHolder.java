@@ -195,7 +195,7 @@ final class SoundItemViewHolder extends BaseBindingViewHolder<SoundItemViewModel
 
         @Override
         public void bind(@NonNull final RecyclerView.ViewHolder viewHolder,
-                         @NonNull final DisplayableItem<Sound> item) {
+                         @NonNull final DisplayableItem<? extends Sound> item) {
             SoundItemViewHolder soundItemViewHolder = (SoundItemViewHolder) viewHolder;
             Sound sound = item.getModel();
             soundItemViewHolder.bind(viewModelFactory.create(sound));

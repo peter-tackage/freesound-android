@@ -45,9 +45,7 @@ class MultiItemListAdapter<I>(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
         // TODO Fix this - we should arguably limit the range of the ViewHolder rather than this check.
-        if (holder is BindingViewHolder<*>) {
-            holder.unbind()
-        }
+        (holder as? BindingViewHolder<*>)?.unbind()
     }
 
 }
