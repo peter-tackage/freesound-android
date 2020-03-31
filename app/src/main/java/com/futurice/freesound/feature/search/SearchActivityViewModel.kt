@@ -38,7 +38,7 @@ const val SEARCH_DEBOUNCE_TAG = "SEARCH DEBOUNCE"
 
 const val NO_SEARCH = Text.EMPTY
 
-internal class SearchActivityViewModel(private val searchDataModel: SearchDataModel,
+internal class SearchActivityViewModel(private val searchRepository: SearchRepository,
                                        private val audioPlayer: AudioPlayer,
                                        private val analytics: Analytics,
                                        private val schedulerProvider: SchedulerProvider) : BaseViewModel() {
@@ -73,12 +73,12 @@ internal class SearchActivityViewModel(private val searchDataModel: SearchDataMo
                 .map { isCloseEnabled(it) }
 
     val searchStateOnceAndStream: Observable<SearchState>
-        get() = searchDataModel.searchStateOnceAndStream
+        get() = searchRepository.searchStateOnceAndStream
 
     private fun querySearch(query: String): Completable =
-            searchDataModel.querySearch(query, debounceQuery())
+            searchRepository.querySearch(query, debounceQuery())
 
-    private fun clearResults() = searchDataModel.clear()
+    private fun clearResults() = searchRepository.clear()
 
     private fun debounceQuery(): Completable =
             Completable.timer(SEARCH_DEBOUNCE_TIME_SECONDS.toLong(),

@@ -22,7 +22,7 @@ import com.futurice.freesound.feature.audio.PlaybackSource
 import com.futurice.freesound.feature.audio.PlayerState
 import com.futurice.freesound.feature.audio.from
 import com.futurice.freesound.feature.common.Navigator
-import com.futurice.freesound.network.api.FreeSoundApiService
+import com.futurice.freesound.network.api.FreeSoundApiClient
 import com.futurice.freesound.network.api.model.Sound
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -32,7 +32,7 @@ import java.text.DateFormat
 internal class SoundItemViewModel(private val sound: Sound,
                                   private val navigator: Navigator,
                                   private val audioPlayer: AudioPlayer,
-                                  private val freeSoundApiService: FreeSoundApiService) : SimpleViewModel() {
+                                  private val freeSoundApiClient: FreeSoundApiClient) : SimpleViewModel() {
 
     private val thumbnail: String = sound.images.medSizeWaveformUrl
 
@@ -48,7 +48,7 @@ internal class SoundItemViewModel(private val sound: Sound,
     fun name(): Single<String> = Single.just(sound.name)
 
     fun userAvatar(): Single<String> =
-            freeSoundApiService.getUser(sound.username)
+            freeSoundApiClient.getUser(sound.username)
                     .map { user -> user.avatar.medium }
                     .cache()
 

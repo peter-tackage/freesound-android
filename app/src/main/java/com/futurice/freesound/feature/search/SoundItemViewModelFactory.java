@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.futurice.freesound.feature.audio.AudioPlayer;
 import com.futurice.freesound.feature.common.Navigator;
-import com.futurice.freesound.network.api.FreeSoundApiService;
+import com.futurice.freesound.network.api.FreeSoundApiClient;
 import com.futurice.freesound.network.api.model.Sound;
 
 final class SoundItemViewModelFactory {
@@ -13,17 +13,17 @@ final class SoundItemViewModelFactory {
     @NonNull
     private final AudioPlayer audioPlayer;
     @NonNull
-    private final FreeSoundApiService freeSoundApiService;
+    private final FreeSoundApiClient freeSoundApiClient;
 
     SoundItemViewModelFactory(@NonNull Navigator navigator,
                               @NonNull AudioPlayer audioPlayer,
-                              @NonNull FreeSoundApiService freeSoundApiService) {
+                              @NonNull FreeSoundApiClient freeSoundApiClient) {
         this.navigator = navigator;
         this.audioPlayer = audioPlayer;
-        this.freeSoundApiService = freeSoundApiService;
+        this.freeSoundApiClient = freeSoundApiClient;
     }
 
     public SoundItemViewModel create(Sound sound) {
-        return new SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService);
+        return new SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient);
     }
 }

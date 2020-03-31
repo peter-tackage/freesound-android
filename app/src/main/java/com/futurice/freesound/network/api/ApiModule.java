@@ -26,6 +26,6 @@ public abstract class ApiModule {
 
     @Binds
     @Singleton
-    abstract FreeSoundApiService provideFreeSoundApiService(
-            DefaultFreeSoundApiService defaultFreeSoundApiService);
+    abstract FreeSoundApiClient provideFreeSoundApiClient(
+            DefaultFreeSoundApiClient defaultFreeSoundApiClient);
 }

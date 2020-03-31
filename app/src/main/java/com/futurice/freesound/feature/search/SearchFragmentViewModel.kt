@@ -16,7 +16,6 @@
 package com.futurice.freesound.feature.search
 
 import com.futurice.freesound.arch.mvvm.SimpleViewModel
-import com.futurice.freesound.common.utils.Preconditions
 import com.futurice.freesound.feature.audio.AudioPlayer
 import com.futurice.freesound.feature.common.DisplayableItem
 import com.futurice.freesound.feature.common.Navigator
@@ -26,26 +25,26 @@ import com.futurice.freesound.network.api.model.Sound
 import io.reactivex.Observable
 import polanski.option.Option
 
-internal class SearchFragmentViewModel(private val searchDataModel: SearchDataModel,
+internal class SearchFragmentViewModel(private val searchRepository: SearchRepository,
                                        private val navigator: Navigator,
                                        private val audioPlayer: AudioPlayer,
                                        private val schedulerProvider: SchedulerProvider) : SimpleViewModel() {
 
     // When there are none results (result == null), this won't do anything.
     val soundsOnceAndStream: Observable<Option<List<DisplayableItem<Sound>>>>
-        get() = searchDataModel.searchStateOnceAndStream
+        get() = searchRepository.searchStateOnceAndStream
                 .observeOn(schedulerProvider.ui())
                 .map { searchState: SearchState -> extractResults(searchState) }
                 .map { it.map { sounds -> sounds.wrapInDisplayableItem() } }
                 .doOnNext { audioPlayer.stopPlayback() }
 
     val searchStateOnceAndStream: Observable<SearchState>
-        get() = searchDataModel.searchStateOnceAndStream
+        get() = searchRepository.searchStateOnceAndStream
 
     fun stopPlayback() = audioPlayer.stopPlayback()
 
     fun openSoundDetails(sound: Sound) {
-        navigator.openSoundDetails(Preconditions.get(sound))
+        navigator.openSoundDetails(sound)
     }
 
     private fun extractResults(searchState: SearchState): Option<List<Sound>> {

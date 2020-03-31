@@ -16,7 +16,7 @@
 
 package com.futurice.freesound.feature.user;
 
-import com.futurice.freesound.network.api.FreeSoundApiService;
+import com.futurice.freesound.network.api.FreeSoundApiClient;
 import com.futurice.freesound.network.api.model.User;
 import com.futurice.freesound.store.Cache;
 import com.futurice.freesound.store.Store;
@@ -34,9 +34,9 @@ public class UserModule {
 
     @Provides
     @Singleton
-    UserRepository provideUserRepository(FreeSoundApiService freesoundApiService,
+    UserRepository provideUserRepository(FreeSoundApiClient freesoundApiClient,
                                          @Named(USER_STORE) Store<String, User> userStore) {
-        return new UserRepository(freesoundApiService, userStore);
+        return new UserRepository(freesoundApiClient, userStore);
     }
 
     @Provides

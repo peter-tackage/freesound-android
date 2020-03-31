@@ -34,7 +34,7 @@ import polanski.option.Option
 
 class SearchFragmentViewModelTest {
     @Mock
-    private lateinit var searchDataModel: SearchDataModel
+    private lateinit var searchRepository: SearchRepository
 
     @Mock
     private lateinit var navigator: Navigator
@@ -47,7 +47,7 @@ class SearchFragmentViewModelTest {
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        viewModel = SearchFragmentViewModel(searchDataModel,
+        viewModel = SearchFragmentViewModel(searchRepository,
                 navigator,
                 audioPlayer,
                 TrampolineSchedulerProvider())
@@ -113,7 +113,7 @@ class SearchFragmentViewModelTest {
         private val mockedSearchResultsStream = BehaviorSubject.createDefault<SearchState>(SearchState.Cleared)
 
         fun withSuccessfulSearchResultStream(): Arrangement {
-            `when`(searchDataModel.searchStateOnceAndStream).thenReturn(mockedSearchResultsStream)
+            `when`(searchRepository.searchStateOnceAndStream).thenReturn(mockedSearchResultsStream)
             return this
         }
 

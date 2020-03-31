@@ -24,7 +24,7 @@ import com.futurice.freesound.feature.user.UserRepository;
 import com.futurice.freesound.inject.activity.BaseActivityModule;
 import com.futurice.freesound.inject.app.BaseApplicationComponent;
 import com.futurice.freesound.inject.app.ForApplication;
-import com.futurice.freesound.network.api.FreeSoundApiService;
+import com.futurice.freesound.network.api.FreeSoundApiClient;
 import com.squareup.picasso.Picasso;
 
 import android.content.Context;
@@ -42,7 +42,7 @@ public interface FreesoundApplicationComponent extends BaseApplicationComponent 
     @ForApplication
     Context getApplicationContext();
 
-    FreeSoundApiService getFreeSoundApiService();
+    FreeSoundApiClient getFreeSoundApiService();
 
     UserRepository getUserRepository();
 

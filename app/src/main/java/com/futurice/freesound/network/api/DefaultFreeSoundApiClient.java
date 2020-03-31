@@ -30,7 +30,7 @@ import io.reactivex.Single;
 
 import static com.futurice.freesound.common.utils.Preconditions.get;
 
-final class DefaultFreeSoundApiService implements FreeSoundApiService {
+final class DefaultFreeSoundApiClient implements FreeSoundApiClient {
 
     @NonNull
     private final FreeSoundApi freeSoundApi;
@@ -42,9 +42,9 @@ final class DefaultFreeSoundApiService implements FreeSoundApiService {
     private final String clientSecret;
 
     @Inject
-    DefaultFreeSoundApiService(@NonNull final FreeSoundApi freeSoundApi,
-                               @Named(ApiConfigModule.API_CLIENT_ID_CONFIG) @NonNull final String clientId,
-                               @Named(ApiConfigModule.API_CLIENT_SECRET_CONFIG) @NonNull final String clientSecret) {
+    DefaultFreeSoundApiClient(@NonNull final FreeSoundApi freeSoundApi,
+                              @Named(ApiConfigModule.API_CLIENT_ID_CONFIG) @NonNull final String clientId,
+                              @Named(ApiConfigModule.API_CLIENT_SECRET_CONFIG) @NonNull final String clientSecret) {
         this.freeSoundApi = get(freeSoundApi);
         this.clientId = get(clientId);
         this.clientSecret = get(clientSecret);

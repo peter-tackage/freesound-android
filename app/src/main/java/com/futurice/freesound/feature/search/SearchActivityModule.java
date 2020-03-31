@@ -23,7 +23,7 @@ import com.futurice.freesound.feature.audio.AudioPlayer;
 import com.futurice.freesound.feature.common.scheduling.SchedulerProvider;
 import com.futurice.freesound.inject.activity.ActivityScope;
 import com.futurice.freesound.inject.activity.BaseActivityModule;
-import com.futurice.freesound.network.api.FreeSoundApiService;
+import com.futurice.freesound.network.api.FreeSoundApiClient;
 
 import dagger.Module;
 import dagger.Provides;
@@ -33,11 +33,11 @@ public class SearchActivityModule {
 
     @Provides
     @ActivityScope
-    static SearchActivityViewModel provideSearchViewModel(SearchDataModel searchDataModel,
+    static SearchActivityViewModel provideSearchViewModel(SearchRepository searchRepository,
                                                           AudioPlayer audioPlayer,
                                                           Analytics analytics,
                                                           SchedulerProvider schedulerProvider) {
-        return new SearchActivityViewModel(searchDataModel,
+        return new SearchActivityViewModel(searchRepository,
                                            audioPlayer,
                                            analytics,
                                            schedulerProvider);
@@ -45,9 +45,9 @@ public class SearchActivityModule {
 
     @Provides
     @ActivityScope
-    static SearchDataModel provideSearchDataModel(FreeSoundApiService freeSoundApiService,
-                                                  SchedulerProvider schedulerProvider) {
-        return new DefaultSearchDataModel(freeSoundApiService, schedulerProvider);
+    static SearchRepository provideSearchRepository(FreeSoundApiClient freeSoundApiClient,
+                                                   SchedulerProvider schedulerProvider) {
+        return new DefaultSearchRepository(freeSoundApiClient, schedulerProvider);
     }
 
     @Provides

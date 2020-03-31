@@ -16,7 +16,7 @@
 
 package com.futurice.freesound.feature.user
 
-import com.futurice.freesound.network.api.FreeSoundApiService
+import com.futurice.freesound.network.api.FreeSoundApiClient
 import com.futurice.freesound.network.api.model.User
 import com.futurice.freesound.store.Store
 import io.reactivex.Observable
@@ -32,7 +32,7 @@ import io.reactivex.Single
  * Question: Should we just return the fetched value or always use the value in the store?
  * By emitting the fetched value, we are assuming that the store does not alter that.
  */
-class UserRepository(private val freeSoundApi: FreeSoundApiService,
+class UserRepository(private val freeSoundApi: FreeSoundApiClient,
                      private val userStore: Store<String, User>) {
 
     // refresh.

@@ -18,7 +18,7 @@ package com.futurice.freesound.feature.search
 
 import com.futurice.freesound.feature.audio.*
 import com.futurice.freesound.feature.common.Navigator
-import com.futurice.freesound.network.api.FreeSoundApiService
+import com.futurice.freesound.network.api.FreeSoundApiClient
 import com.futurice.freesound.network.api.model.Sound
 import com.futurice.freesound.network.api.model.User
 import com.futurice.freesound.test.data.TestData
@@ -45,7 +45,7 @@ class SoundItemViewModelTest {
     private lateinit var audioPlayer: AudioPlayer
 
     @Mock
-    private lateinit var freeSoundApiService: FreeSoundApiService
+    private lateinit var freeSoundApiClient: FreeSoundApiClient
 
     @Before
     fun setUp() {
@@ -61,7 +61,7 @@ class SoundItemViewModelTest {
                 .copy(avatar = TestData.avatar().copy(medium = avatar_m))
 
         ArrangeBuilder().withUserResponse(username, user)
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.userAvatar()
                 .test()
@@ -75,7 +75,7 @@ class SoundItemViewModelTest {
         val user = TestData.user().copy(username = username)
         ArrangeBuilder().withUserResponse(username, user)
 
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.username()
                 .test()
@@ -87,7 +87,7 @@ class SoundItemViewModelTest {
         val createdDate = Date(1000L)
         val sound = TEST_SOUND.copy(created = createdDate)
 
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.createdDate()
                 .test()
@@ -99,7 +99,7 @@ class SoundItemViewModelTest {
         val soundItemViewModel = SoundItemViewModel(TEST_SOUND,
                 navigator,
                 audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         soundItemViewModel.thumbnailImageUrl()
                 .test()
@@ -111,7 +111,7 @@ class SoundItemViewModelTest {
         val soundItemViewModel = SoundItemViewModel(TEST_SOUND,
                 navigator,
                 audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         soundItemViewModel.name()
                 .test()
@@ -123,7 +123,7 @@ class SoundItemViewModelTest {
         val soundItemViewModel = SoundItemViewModel(TEST_SOUND,
                 navigator,
                 audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         soundItemViewModel.description()
                 .test()
@@ -135,7 +135,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(duration = 0.4f)
 
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.duration()
                 .test()
@@ -147,7 +147,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(duration = 2.6f)
 
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.duration()
                 .test()
@@ -159,7 +159,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(duration = 1f)
 
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.duration()
                 .test()
@@ -171,7 +171,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(duration = 0f)
 
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.duration()
                 .test()
@@ -187,7 +187,7 @@ class SoundItemViewModelTest {
         ArrangeBuilder()
                 .withPlayerStateEvent(playerStateWithSound(sound, PlaybackStatus.PLAYING, positionMs))
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -203,7 +203,7 @@ class SoundItemViewModelTest {
         ArrangeBuilder()
                 .withPlayerStateEvent(playerStateWithSound(sound, PlaybackStatus.PLAYING, positionMs))
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -218,7 +218,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(id = 1L, url = "url", duration = durationSec)
         ArrangeBuilder()
                 .withPlayerStateEvent(playerStateWithSound(sound, PlaybackStatus.PLAYING, positionMs))
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -233,7 +233,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(id = 1L, url = "url", duration = durationSec)
         ArrangeBuilder()
                 .withPlayerStateEvent(playerStateWithSound(sound, PlaybackStatus.PLAYING, positionMs))
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -248,7 +248,7 @@ class SoundItemViewModelTest {
         val sound = TEST_SOUND.copy(id = 1L, url = "url", duration = durationSec)
         ArrangeBuilder()
                 .withPlayerStateEvent(playerStateWithSound(sound, PlaybackStatus.PLAYING, positionMs))
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -266,7 +266,7 @@ class SoundItemViewModelTest {
                         PlaybackSource(from(id2), url1),
                         PlaybackStatus.PLAYING,
                         100))
-        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiService)
+        val vm = SoundItemViewModel(sound, navigator, audioPlayer, freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -286,7 +286,7 @@ class SoundItemViewModelTest {
                         100))
 
         val vm = SoundItemViewModel(sound, navigator, audioPlayer,
-                freeSoundApiService)
+                freeSoundApiClient)
 
         vm.progressPercentage()
                 .test()
@@ -295,7 +295,7 @@ class SoundItemViewModelTest {
 
     @Test
     fun openDetails_openSoundViaNavigator() {
-        SoundItemViewModel(TEST_SOUND, navigator, audioPlayer, freeSoundApiService)
+        SoundItemViewModel(TEST_SOUND, navigator, audioPlayer, freeSoundApiClient)
                 .openDetails()
 
         verify(navigator).openSoundDetails(eq(TEST_SOUND))
@@ -315,7 +315,7 @@ class SoundItemViewModelTest {
         }
 
         internal fun withUserResponse(username: String, user: User): ArrangeBuilder {
-            `when`(freeSoundApiService.getUser(eq(username))).thenReturn(Single.just(user))
+            `when`(freeSoundApiClient.getUser(eq(username))).thenReturn(Single.just(user))
             return this
         }
     }

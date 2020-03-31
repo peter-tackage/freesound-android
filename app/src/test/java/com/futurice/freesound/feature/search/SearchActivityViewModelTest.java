@@ -59,7 +59,7 @@ public class SearchActivityViewModelTest {
     private static final String DUMMY_QUERY = "test-query";
 
     @Mock
-    private SearchDataModel searchDataModel;
+    private SearchRepository searchRepository;
 
     @Mock
     private AudioPlayer audioPlayer;
@@ -81,7 +81,7 @@ public class SearchActivityViewModelTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         schedulerProvider = new TrampolineSchedulerProvider();
-        viewModel = new SearchActivityViewModel(searchDataModel,
+        viewModel = new SearchActivityViewModel(searchRepository,
                 audioPlayer,
                 analytics,
                 schedulerProvider);
@@ -106,12 +106,12 @@ public class SearchActivityViewModelTest {
     }
 
     @Test
-    public void viewModel_clearsSearchDataModel_afterBind() {
+    public void viewModel_clearsSearchRepository_afterBind() {
         new ArrangeBuilder().withSuccessfulSearchResultStream()
                 .act()
                 .bind();
 
-        verify(searchDataModel).clear();
+        verify(searchRepository).clear();
     }
 
     @Test
@@ -125,14 +125,14 @@ public class SearchActivityViewModelTest {
     }
 
     @Test
-    public void search_queriesSearchDataModelWithTerm() {
+    public void search_queriesSearchRepositoryWithTerm() {
         new ArrangeBuilder().withSuccessfulSearchResultStream()
                 .act()
                 .bind();
 
         viewModel.search(DUMMY_QUERY);
 
-        verify(searchDataModel).querySearch(eq(DUMMY_QUERY), any(Completable.class));
+        verify(searchRepository).querySearch(eq(DUMMY_QUERY), any(Completable.class));
     }
 
     @Test
@@ -147,7 +147,7 @@ public class SearchActivityViewModelTest {
         viewModel.search(DUMMY_QUERY);
         viewModel.search(DUMMY_QUERY);
 
-        verify(searchDataModel).querySearch(eq(DUMMY_QUERY), any(Completable.class));
+        verify(searchRepository).querySearch(eq(DUMMY_QUERY), any(Completable.class));
     }
 
     @Test
@@ -162,11 +162,11 @@ public class SearchActivityViewModelTest {
         viewModel.search("");
         viewModel.search("");
 
-        verify(searchDataModel).clear();
+        verify(searchRepository).clear();
     }
 
     @Test
-    public void search_clearsSearchDataModel_whenEmptySearchString_afterSearchWithNonEmptyString() {
+    public void search_clearsSearchRepository_whenEmptySearchString_afterSearchWithNonEmptyString() {
         new ArrangeBuilder().withSuccessfulSearchResultStream()
                 .act()
                 .bind();
@@ -174,10 +174,10 @@ public class SearchActivityViewModelTest {
         viewModel.search(DUMMY_QUERY);
         viewModel.search("");
 
-        InOrder order = inOrder(searchDataModel);
-        order.verify(searchDataModel).clear();
-        order.verify(searchDataModel).querySearch(eq(DUMMY_QUERY), any(Completable.class));
-        order.verify(searchDataModel).clear();
+        InOrder order = inOrder(searchRepository);
+        order.verify(searchRepository).clear();
+        order.verify(searchRepository).querySearch(eq(DUMMY_QUERY), any(Completable.class));
+        order.verify(searchRepository).clear();
     }
 
     @Test
@@ -225,7 +225,7 @@ public class SearchActivityViewModelTest {
                 .bind()
                 .search();
 
-        verify(searchDataModel, times(2)).querySearch(eq(DUMMY_QUERY), any(Completable.class));
+        verify(searchRepository, times(2)).querySearch(eq(DUMMY_QUERY), any(Completable.class));
     }
 
     @Test
@@ -241,7 +241,7 @@ public class SearchActivityViewModelTest {
                 TimeUnit.SECONDS);
         act.search("");
 
-        verify(searchDataModel, times(2)).clear();
+        verify(searchRepository, times(2)).clear();
     }
 
     @Test
@@ -255,7 +255,7 @@ public class SearchActivityViewModelTest {
 
         act.search(DUMMY_QUERY);
 
-        verify(searchDataModel).querySearch(searchTermCaptor.capture(),
+        verify(searchRepository).querySearch(searchTermCaptor.capture(),
                 searchDelayCaptor.capture());
 
         assertThat(searchTermCaptor.getValue()).isEqualTo(DUMMY_QUERY);
@@ -272,7 +272,7 @@ public class SearchActivityViewModelTest {
 
         act.search(DUMMY_QUERY);
 
-        verify(searchDataModel).querySearch(searchTermCaptor.capture(),
+        verify(searchRepository).querySearch(searchTermCaptor.capture(),
                 searchDelayCaptor.capture());
 
         assertThat(searchTermCaptor.getValue()).isEqualTo(DUMMY_QUERY);
@@ -291,10 +291,10 @@ public class SearchActivityViewModelTest {
                 = BehaviorSubject.createDefault(SearchState.Cleared.INSTANCE);
 
         ArrangeBuilder() {
-            Mockito.when(searchDataModel.getSearchStateOnceAndStream())
+            Mockito.when(searchRepository.getSearchStateOnceAndStream())
                     .thenReturn(searchResultsStream);
-            Mockito.when(searchDataModel.clear()).thenReturn(Completable.complete());
-            Mockito.when(searchDataModel.querySearch(anyString(), any(Completable.class)))
+            Mockito.when(searchRepository.clear()).thenReturn(Completable.complete());
+            Mockito.when(searchRepository.querySearch(anyString(), any(Completable.class)))
                     .thenReturn(Completable.complete());
             withSuccessfulSearchResultStream();
             withTimeSkipScheduler();
@@ -315,7 +315,7 @@ public class SearchActivityViewModelTest {
         }
 
         ArrangeBuilder withSuccessfulSearchResultStream() {
-            when(searchDataModel.getSearchStateOnceAndStream())
+            when(searchRepository.getSearchStateOnceAndStream())
                     .thenReturn(mockedSearchResultsStream);
             return this;
         }
@@ -326,7 +326,7 @@ public class SearchActivityViewModelTest {
         }
 
         ArrangeBuilder withErrorWhenSearching() {
-            when(searchDataModel.querySearch(anyString(), any())).thenReturn(
+            when(searchRepository.querySearch(anyString(), any())).thenReturn(
                     Completable.error(new Exception()));
             return this;
         }

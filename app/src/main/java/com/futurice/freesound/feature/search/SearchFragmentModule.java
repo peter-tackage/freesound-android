@@ -31,7 +31,7 @@ import com.futurice.freesound.feature.common.ui.adapter.ViewHolderFactory;
 import com.futurice.freesound.inject.activity.ForActivity;
 import com.futurice.freesound.inject.fragment.BaseFragmentModule;
 import com.futurice.freesound.inject.fragment.FragmentScope;
-import com.futurice.freesound.network.api.FreeSoundApiService;
+import com.futurice.freesound.network.api.FreeSoundApiClient;
 import com.futurice.freesound.network.api.model.Sound;
 import com.squareup.picasso.Picasso;
 
@@ -49,11 +49,11 @@ public class SearchFragmentModule {
 
     @Provides
     @FragmentScope
-    static SearchFragmentViewModel provideSearchFragmentViewModel(SearchDataModel searchDataModel,
+    static SearchFragmentViewModel provideSearchFragmentViewModel(SearchRepository searchRepository,
                                                                   Navigator navigator,
                                                                   AudioPlayer audioPlayer,
                                                                   SchedulerProvider schedulerProvider) {
-        return new SearchFragmentViewModel(searchDataModel, navigator, audioPlayer, schedulerProvider);
+        return new SearchFragmentViewModel(searchRepository, navigator, audioPlayer, schedulerProvider);
     }
 
     @Provides
@@ -96,8 +96,8 @@ public class SearchFragmentModule {
     @Provides
     SoundItemViewModelFactory provideSoundViewModelFactory(Navigator navigator,
                                                            AudioPlayer audioPlayer,
-                                                           FreeSoundApiService freeSoundApiService) {
-        return new SoundItemViewModelFactory(navigator, audioPlayer, freeSoundApiService);
+                                                           FreeSoundApiClient freeSoundApiClient) {
+        return new SoundItemViewModelFactory(navigator, audioPlayer, freeSoundApiClient);
     }
 
     @IntoMap
